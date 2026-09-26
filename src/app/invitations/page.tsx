@@ -28,9 +28,12 @@ export default async function InvitationsPage({
     });
 
     if (family) {
-      const [gifts, paymentsCount] = await Promise.all([
+      const [gifts, paymentsCount, confirmedPaymentsCount] = await Promise.all([
         prisma.gift.findMany({ orderBy: { createdAt: "desc" } }),
         prisma.payment.count({ where: { familyId: family.id } }),
+        prisma.payment.count({
+          where: { familyId: family.id, status: "CONFIRMED" },
+        }),
       ]);
 
       const principal = family.members.find((member) => member.isPrincipal);
@@ -42,6 +45,7 @@ export default async function InvitationsPage({
             principalName={principal?.name ?? "convidado"}
             peopleCount={peopleCount}
             hasContributions={paymentsCount > 0}
+            hasConfirmedPayment={confirmedPaymentsCount > 0}
             gifts={gifts.map((gift) => ({
               id: gift.id,
               name: gift.name,

@@ -3,7 +3,8 @@
 import { useEffect, useState, useTransition, type FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Gift as GiftIcon, Flower2, Receipt } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Gift as GiftIcon, Flower2, MailOpen, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,11 +45,13 @@ export function ProductsList({
   principalName,
   peopleCount,
   hasContributions,
+  hasConfirmedPayment,
   gifts,
 }: {
   principalName: string;
   peopleCount: number;
   hasContributions: boolean;
+  hasConfirmedPayment: boolean;
   gifts: GiftDTO[];
 }) {
   return (
@@ -77,14 +80,27 @@ export function ProductsList({
               a montar nosso lar, optamos por contribuição em dinheiro como
               presente.
             </p>
-            {hasContributions && (
-              <Link
-                href="/invitations/contributions"
-                className="mt-5 inline-flex h-11 w-fit items-center gap-2 rounded-xl border border-[#4A3F35] px-5 text-sm font-semibold text-[#4A3F35] transition-colors hover:bg-[#4A3F35] hover:text-white sm:text-base"
-              >
-                <Receipt aria-hidden className="size-4" />
-                Quero ver minhas contribuições
-              </Link>
+            {(hasConfirmedPayment || hasContributions) && (
+              <div className="mt-5 flex flex-wrap justify-center gap-3 sm:justify-start">
+                {hasConfirmedPayment && (
+                  <Link
+                    href="/invitations/invite"
+                    className="inline-flex h-11 w-fit items-center gap-2 rounded-xl bg-[#4A3F35] px-5 text-sm font-semibold text-white transition-colors hover:bg-[#3A3129] sm:text-base"
+                  >
+                    <MailOpen aria-hidden className="size-4" />
+                    Ver meu convite
+                  </Link>
+                )}
+                {hasContributions && (
+                  <Link
+                    href="/invitations/contributions"
+                    className="inline-flex h-11 w-fit items-center gap-2 rounded-xl border border-[#4A3F35] px-5 text-sm font-semibold text-[#4A3F35] transition-colors hover:bg-[#4A3F35] hover:text-white sm:text-base"
+                  >
+                    <Receipt aria-hidden className="size-4" />
+                    Quero ver minhas contribuições
+                  </Link>
+                )}
+              </div>
             )}
           </div>
         </div>
@@ -116,6 +132,7 @@ function ProductCard({
   gift: GiftDTO;
   peopleCount: number;
 }) {
+  const router = useRouter();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   // Valor digitado, em centavos (evita erros de arredondamento com float).
   const [amountCents, setAmountCents] = useState(0);
@@ -137,13 +154,16 @@ function ProductCard({
       try {
         const current = await getPaymentStatus(payment.paymentId);
         setStatus(current);
+        // Atualiza a página para mostrar o valor arrecadado e o botão
+        // "Ver meu convite" assim que o pagamento é confirmado.
+        if (current === "CONFIRMED") router.refresh();
       } catch {
         // ignora falhas pontuais de rede e tenta de novo no próximo tick
       }
     }, 4000);
 
     return () => clearInterval(interval);
-  }, [payment, status]);
+  }, [payment, status, router]);
 
   function handleOpenDialog() {
     if (!payment) {
