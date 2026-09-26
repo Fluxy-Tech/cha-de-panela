@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition, type FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Gift as GiftIcon, Flower2, Receipt, ShoppingCart } from "lucide-react";
+import { Gift as GiftIcon, Flower2, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,7 +52,7 @@ export function ProductsList({
   return (
     <div className="relative z-10 flex w-full max-w-[1800px] flex-col gap-12">
       <div className="flex flex-col items-center text-center">
-        <div className="flex items-center justify-center gap-3 sm:gap-6">
+        <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-6">
           <Image
             src="/Girassois.png"
             alt=""
@@ -60,9 +60,9 @@ export function ProductsList({
             width={1536}
             height={1024}
             priority
-            className="w-40 shrink-0 select-none sm:w-72 lg:w-80"
+            className="w-56 shrink-0 select-none sm:w-72 lg:w-80"
           />
-          <div className="flex max-w-xl flex-col text-left">
+          <div className="flex max-w-xl flex-col items-center text-center sm:items-start sm:text-left">
             <h1 className="font-signature text-5xl leading-tight text-[#4A3F35] sm:text-7xl">
               Olá, {principalName}!
             </h1>
@@ -88,8 +88,7 @@ export function ProductsList({
         </div>
       </div>
 
-      <p className="-mb-4 flex items-center justify-center gap-2 text-center font-heading text-xl text-[#4A3F35] sm:gap-3 sm:text-2xl">
-        <ShoppingCart aria-hidden className="size-6 shrink-0 text-[#C4A35A] sm:size-7" />
+      <p className="-mb-4 text-center font-heading text-xl text-[#4A3F35] sm:text-2xl">
         Esta é a nossa lista do carinho para montar o nosso tão sonhado lar.
       </p>
 
