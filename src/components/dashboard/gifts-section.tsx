@@ -19,8 +19,8 @@ export type GiftDTO = {
 };
 
 function fundedPercentage(gift: GiftDTO) {
-  if (gift.minValue <= 0) return 0;
-  return Math.min(100, Math.round((gift.raisedAmount / gift.minValue) * 100));
+  if (gift.value <= 0) return 0;
+  return Math.min(100, Math.round((gift.raisedAmount / gift.value) * 100));
 }
 
 export function GiftsSection({ gifts }: { gifts: GiftDTO[] }) {
@@ -208,37 +208,61 @@ export function GiftsSection({ gifts }: { gifts: GiftDTO[] }) {
                 onSubmit={(event) => handleSaveEdit(event, gift.id)}
                 className="flex flex-1 flex-col gap-2"
               >
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <Input
-                    autoFocus
-                    value={editName}
-                    onChange={(event) => setEditName(event.target.value)}
-                    placeholder="Eletrodoméstico"
-                  />
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    value={editValue}
-                    onChange={(event) => setEditValue(event.target.value)}
-                    placeholder="Valor (R$)"
-                  />
-                  <Input
-                    type="number"
-                    min="1"
-                    step="1"
-                    value={editMinValue}
-                    onChange={(event) => setEditMinValue(event.target.value)}
-                    placeholder="Valor mínimo"
-                  />
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+                  <div className="flex flex-1 flex-col gap-1.5">
+                    <Label htmlFor={`edit-gift-name-${gift.id}`}>
+                      Eletrodoméstico
+                    </Label>
+                    <Input
+                      id={`edit-gift-name-${gift.id}`}
+                      autoFocus
+                      value={editName}
+                      onChange={(event) => setEditName(event.target.value)}
+                      placeholder="Eletrodoméstico"
+                    />
+                  </div>
+                  <div className="flex flex-1 flex-col gap-1.5">
+                    <Label htmlFor={`edit-gift-value-${gift.id}`}>
+                      Valor (R$)
+                    </Label>
+                    <Input
+                      id={`edit-gift-value-${gift.id}`}
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={editValue}
+                      onChange={(event) => setEditValue(event.target.value)}
+                      placeholder="Valor (R$)"
+                    />
+                  </div>
+                  <div className="flex flex-1 flex-col gap-1.5">
+                    <Label htmlFor={`edit-gift-min-value-${gift.id}`}>
+                      Valor mínimo (meta)
+                    </Label>
+                    <Input
+                      id={`edit-gift-min-value-${gift.id}`}
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={editMinValue}
+                      onChange={(event) => setEditMinValue(event.target.value)}
+                      placeholder="Valor mínimo"
+                    />
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="url"
-                    value={editImageUrl}
-                    onChange={(event) => setEditImageUrl(event.target.value)}
-                    placeholder="URL da imagem"
-                  />
+                <div className="flex items-end gap-2">
+                  <div className="flex flex-1 flex-col gap-1.5">
+                    <Label htmlFor={`edit-gift-image-${gift.id}`}>
+                      URL da imagem
+                    </Label>
+                    <Input
+                      id={`edit-gift-image-${gift.id}`}
+                      type="url"
+                      value={editImageUrl}
+                      onChange={(event) => setEditImageUrl(event.target.value)}
+                      placeholder="URL da imagem"
+                    />
+                  </div>
                   <Button
                     type="submit"
                     size="icon-sm"
@@ -267,13 +291,13 @@ export function GiftsSection({ gifts }: { gifts: GiftDTO[] }) {
                     <img
                       src={gift.imageUrl}
                       alt={gift.name}
-                      className="size-10 shrink-0 rounded-md object-cover ring-1 ring-border"
+                      className="size-16 shrink-0 rounded-md object-cover ring-1 ring-border"
                       onError={(event) => {
                         event.currentTarget.style.visibility = "hidden";
                       }}
                     />
                   ) : (
-                    <div className="size-10 shrink-0 rounded-md bg-muted" />
+                    <div className="size-16 shrink-0 rounded-md bg-muted" />
                   )}
                   <div className="flex flex-col text-sm">
                     <span className="font-medium">
@@ -282,9 +306,9 @@ export function GiftsSection({ gifts }: { gifts: GiftDTO[] }) {
                         · {formatCurrency(gift.value)}
                       </span>
                     </span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-sm text-muted-foreground">
                       {formatCurrency(gift.raisedAmount)} arrecadados de{" "}
-                      {formatCurrency(gift.minValue)} · {fundedPercentage(gift)}%
+                      {formatCurrency(gift.value)} · {fundedPercentage(gift)}%
                     </span>
                   </div>
                 </div>

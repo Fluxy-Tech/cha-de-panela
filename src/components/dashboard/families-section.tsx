@@ -1,7 +1,18 @@
 "use client";
 
 import { useState, useTransition, type FormEvent } from "react";
-import { Plus, Pencil, Trash2, Star, X, Check, Copy, Baby, Coins } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Star,
+  X,
+  Check,
+  Copy,
+  Baby,
+  Coins,
+  Link as LinkIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,6 +44,7 @@ type ConfirmedPaymentDTO = {
 export type FamilyDTO = {
   id: string;
   code: string;
+  inviteLink: string;
   members: MemberDTO[];
   confirmedPayments: ConfirmedPaymentDTO[];
 };
@@ -51,7 +63,10 @@ export function FamiliesSection({ families }: { families: FamilyDTO[] }) {
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [editingValue, setEditingValue] = useState("");
 
-  const [copiedFamilyId, setCopiedFamilyId] = useState<string | null>(null);
+  const [copied, setCopied] = useState<{
+    familyId: string;
+    field: "code" | "link";
+  } | null>(null);
 
   function runAction(action: () => Promise<void>, onDone?: () => void) {
     setError(null);
@@ -124,11 +139,23 @@ export function FamiliesSection({ families }: { families: FamilyDTO[] }) {
     runAction(() => deleteFamily(familyId));
   }
 
-  async function handleCopyCode(familyId: string, code: string) {
+  async function handleCopy(
+    familyId: string,
+    field: "code" | "link",
+    value: string,
+  ) {
     try {
-      await navigator.clipboard.writeText(code);
-      setCopiedFamilyId(familyId);
-      setTimeout(() => setCopiedFamilyId((current) => (current === familyId ? null : current)), 1500);
+      await navigator.clipboard.writeText(value);
+      setCopied({ familyId, field });
+      setTimeout(
+        () =>
+          setCopied((current) =>
+            current?.familyId === familyId && current.field === field
+              ? null
+              : current,
+          ),
+        1500,
+      );
     } catch {
       // clipboard indisponível — ignora
     }
@@ -231,9 +258,35 @@ export function FamiliesSection({ families }: { families: FamilyDTO[] }) {
                     variant="ghost"
                     size="icon-sm"
                     aria-label="Copiar código"
-                    onClick={() => handleCopyCode(family.id, family.code)}
+                    onClick={() => handleCopy(family.id, "code", family.code)}
                   >
-                    {copiedFamilyId === family.id ? <Check /> : <Copy />}
+                    {copied?.familyId === family.id && copied.field === "code" ? (
+                      <Check />
+                    ) : (
+                      <Copy />
+                    )}
+                  </Button>
+                </div>
+
+                <div className="flex items-center justify-between gap-2 rounded-lg border border-dashed border-border px-3 py-2">
+                  <span className="flex min-w-0 items-center gap-1.5 text-sm">
+                    <LinkIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                    <span className="truncate">Link de convite</span>
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Copiar link de convite"
+                    onClick={() =>
+                      handleCopy(family.id, "link", family.inviteLink)
+                    }
+                  >
+                    {copied?.familyId === family.id && copied.field === "link" ? (
+                      <Check />
+                    ) : (
+                      <Copy />
+                    )}
                   </Button>
                 </div>
 
@@ -265,15 +318,21 @@ export function FamiliesSection({ families }: { families: FamilyDTO[] }) {
                       {editingMemberId === member.id ? (
                         <form
                           onSubmit={(event) => handleRename(event, member.id)}
-                          className="flex flex-1 items-center gap-2"
+                          className="flex flex-1 items-end gap-2"
                         >
-                          <Input
-                            autoFocus
-                            value={editingValue}
-                            onChange={(event) =>
-                              setEditingValue(event.target.value)
-                            }
-                          />
+                          <div className="flex flex-1 flex-col gap-1.5">
+                            <Label htmlFor={`edit-member-${member.id}`}>
+                              Nome
+                            </Label>
+                            <Input
+                              id={`edit-member-${member.id}`}
+                              autoFocus
+                              value={editingValue}
+                              onChange={(event) =>
+                                setEditingValue(event.target.value)
+                              }
+                            />
+                          </div>
                           <Button
                             type="submit"
                             size="icon-sm"
@@ -378,14 +437,20 @@ export function FamiliesSection({ families }: { families: FamilyDTO[] }) {
                     onSubmit={(event) => handleAddMember(event, family.id)}
                     className="flex flex-col gap-2"
                   >
-                    <div className="flex items-center gap-2">
-                      <Input
-                        autoFocus
-                        required
-                        placeholder="Nome da pessoa"
-                        value={newMemberName}
-                        onChange={(event) => setNewMemberName(event.target.value)}
-                      />
+                    <div className="flex items-end gap-2">
+                      <div className="flex flex-1 flex-col gap-1.5">
+                        <Label htmlFor={`new-member-${family.id}`}>
+                          Nome da pessoa
+                        </Label>
+                        <Input
+                          id={`new-member-${family.id}`}
+                          autoFocus
+                          required
+                          placeholder="Nome da pessoa"
+                          value={newMemberName}
+                          onChange={(event) => setNewMemberName(event.target.value)}
+                        />
+                      </div>
                       <Button type="submit" size="sm" disabled={isPending}>
                         Adicionar
                       </Button>

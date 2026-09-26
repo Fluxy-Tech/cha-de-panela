@@ -13,7 +13,6 @@ gsap.registerPlugin(SplitText);
 export function SunflowerHero() {
   const containerRef = useRef<HTMLDivElement>(null);
   const imageWrapRef = useRef<HTMLDivElement>(null);
-  const kickerRef = useRef<HTMLParagraphElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const subRef = useRef<HTMLParagraphElement>(null);
   const ctaRef = useRef<HTMLAnchorElement>(null);
@@ -37,24 +36,14 @@ export function SunflowerHero() {
 
       gsap
         .timeline({ delay: 0.3 })
-        .to(kickerRef.current, {
+        .to(split.chars, {
           opacity: 1,
-          y: 0,
-          duration: 0.6,
-          ease: "power3.out",
+          yPercent: 0,
+          rotate: 0,
+          duration: 0.9,
+          stagger: 0.02,
+          ease: "back.out(1.7)",
         })
-        .to(
-          split.chars,
-          {
-            opacity: 1,
-            yPercent: 0,
-            rotate: 0,
-            duration: 0.9,
-            stagger: 0.02,
-            ease: "back.out(1.7)",
-          },
-          "-=0.2",
-        )
         .to(
           subRef.current,
           { opacity: 1, y: 0, duration: 0.6, ease: "power3.out" },
@@ -90,25 +79,19 @@ export function SunflowerHero() {
 
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/5 to-transparent" />
 
-      <div className="relative z-10 flex w-full max-w-3xl flex-col items-end gap-4 px-6 text-right sm:px-16">
-        <p
-          ref={kickerRef}
-          className="translate-y-3 text-xl font-medium uppercase tracking-[0.3em] text-amber-200 opacity-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)] sm:text-2xl"
-        >
-          Chá de Panela
-        </p>
+      <div className="relative z-10 flex w-full max-w-5xl flex-col items-end gap-4 px-6 text-right sm:px-16">
         <h1
           ref={titleRef}
-          className="invisible font-heading text-4xl italic leading-[1.05] text-yellow-50 drop-shadow-[0_4px_16px_rgba(0,0,0,0.65)] sm:text-6xl md:text-7xl"
+          className="invisible font-heading text-4xl font-semibold leading-[1.1] text-yellow-50 drop-shadow-[0_4px_16px_rgba(0,0,0,0.65)] sm:text-6xl md:text-7xl"
         >
-          Logo, logo, uma nova festa floresce
+          Logo, logo nosso amor floresce em mais uma celebração: o nosso chá
+          de panela!
         </h1>
         <p
           ref={subRef}
-          className="max-w-lg translate-y-3 text-base text-yellow-100/80 opacity-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)] sm:text-lg"
+          className="max-w-lg translate-y-3 font-heading text-base font-medium text-white opacity-0 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)] sm:text-lg sm:text-yellow-100/80"
         >
-          Em breve chega o convite oficial do nosso Chá de Panela. Fique de
-          olho.
+          Para confirmar sua presença e de sua família, clique no botão abaixo
         </p>
         <Link
           ref={ctaRef}
@@ -116,10 +99,10 @@ export function SunflowerHero() {
           className={buttonVariants({
             size: "lg",
             className:
-              "mt-2 h-auto translate-y-3 rounded-full bg-amber-400 px-6 py-3 text-base font-semibold text-amber-950 opacity-0 shadow-lg hover:bg-amber-300",
+              "mt-2 h-auto translate-y-3 rounded-full bg-white px-6 py-3 text-base font-semibold text-yellow-950 opacity-0 shadow-lg hover:bg-white/90 sm:bg-yellow-400 sm:hover:bg-yellow-300",
           })}
         >
-          Quero confirmar minha presença
+          Confirmar presença
         </Link>
       </div>
     </div>

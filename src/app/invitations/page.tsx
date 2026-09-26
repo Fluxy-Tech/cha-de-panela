@@ -1,10 +1,25 @@
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { INVITE_CODE_COOKIE } from "@/lib/invite-code";
 import { getSessionFamilyId } from "@/lib/family-session";
 import { FamilySelectForm } from "@/components/invitations/family-select-form";
+import { AutoFamilyAccess } from "@/components/invitations/auto-family-access";
 import { ProductsList } from "@/components/invitations/products-list";
 
-export default async function InvitationsPage() {
-  const familyId = await getSessionFamilyId();
+export default async function InvitationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tk?: string | string[] }>;
+}) {
+  // Código do convite: vem do cookie gravado pelo proxy (link /?tk=CODIGO) ou,
+  // por compatibilidade, direto na URL (/invitations?tk=CODIGO). Tem prioridade
+  // sobre a sessão atual para que um novo link troque a família autenticada.
+  const { tk } = await searchParams;
+  const linkCode =
+    (Array.isArray(tk) ? tk[0] : tk) ??
+    (await cookies()).get(INVITE_CODE_COOKIE)?.value;
+
+  const familyId = linkCode ? null : await getSessionFamilyId();
 
   if (familyId) {
     const family = await prisma.family.findUnique({
@@ -13,18 +28,20 @@ export default async function InvitationsPage() {
     });
 
     if (family) {
-      const gifts = await prisma.gift.findMany({
-        orderBy: { createdAt: "desc" },
-      });
+      const [gifts, paymentsCount] = await Promise.all([
+        prisma.gift.findMany({ orderBy: { createdAt: "desc" } }),
+        prisma.payment.count({ where: { familyId: family.id } }),
+      ]);
 
       const principal = family.members.find((member) => member.isPrincipal);
       const peopleCount = family.members.filter((member) => !member.isChild).length;
 
       return (
-        <main className="flex min-h-screen flex-col items-center bg-gradient-to-b from-amber-50 via-yellow-50 to-amber-100 px-4 pb-16 pt-24 dark:from-neutral-950 dark:via-neutral-900 dark:to-black">
+        <main className="flex min-h-screen flex-col items-center bg-[#FDFCF7] px-4 pb-20 pt-40 sm:pt-44">
           <ProductsList
-            familyName={principal?.name ?? "sua família"}
+            principalName={principal?.name ?? "convidado"}
             peopleCount={peopleCount}
+            hasContributions={paymentsCount > 0}
             gifts={gifts.map((gift) => ({
               id: gift.id,
               name: gift.name,
@@ -54,8 +71,12 @@ export default async function InvitationsPage() {
     }));
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-amber-50 via-yellow-50 to-amber-100 px-4 pt-24 pb-12 dark:from-neutral-950 dark:via-neutral-900 dark:to-black">
-      <FamilySelectForm families={familyOptions} />
+    <main className="flex min-h-screen flex-col items-center justify-center bg-[#FFFCEA] px-4 pt-24 pb-12">
+      {linkCode ? (
+        <AutoFamilyAccess code={linkCode} families={familyOptions} />
+      ) : (
+        <FamilySelectForm families={familyOptions} />
+      )}
     </main>
   );
 }

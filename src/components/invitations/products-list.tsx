@@ -1,17 +1,21 @@
 "use client";
 
 import { useEffect, useState, useTransition, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
-import { Gift as GiftIcon, Check } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { Gift as GiftIcon, Flower2, Receipt, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { formatCurrency } from "@/lib/format";
-import { calculateContributionValue } from "@/lib/pricing";
+import {
+  calculateContributionValue,
+  maxInstallmentsFor,
+} from "@/lib/pricing";
 import {
   createProductPayment,
   getPaymentStatus,
-  resetFamilySelection,
 } from "@/app/invitations/actions";
 
 type GiftDTO = {
@@ -26,60 +30,75 @@ type GiftDTO = {
 type PaymentResult = {
   paymentId: string;
   amount: number;
-  qrCodeImage: string;
-  qrCodePayload: string;
+  invoiceUrl: string;
 };
 
 function fundedPercentage(gift: GiftDTO) {
-  if (gift.minValue <= 0) return 0;
-  return Math.min(100, Math.round((gift.raisedAmount / gift.minValue) * 100));
+  if (gift.value <= 0) return 0;
+  return Math.min(100, Math.round((gift.raisedAmount / gift.value) * 100));
 }
 
 export function ProductsList({
-  familyName,
+  principalName,
   peopleCount,
+  hasContributions,
   gifts,
 }: {
-  familyName: string;
+  principalName: string;
   peopleCount: number;
+  hasContributions: boolean;
   gifts: GiftDTO[];
 }) {
-  const router = useRouter();
-  const [isSwitching, startSwitching] = useTransition();
-
-  function handleSwitchFamily() {
-    startSwitching(async () => {
-      await resetFamilySelection();
-      router.refresh();
-    });
-  }
-
   return (
-    <div className="flex w-full max-w-2xl flex-col gap-6">
-      <div className="text-center">
-        <h1 className="font-heading text-2xl italic text-amber-900 dark:text-amber-100 sm:text-3xl">
-          Olá, família de {familyName}!
-        </h1>
-        <p className="mt-1 text-sm text-amber-700 dark:text-amber-300">
-          Escolha um produto para nos ajudar a comprar. O valor sugerido já
-          considera quantas pessoas fazem parte da sua família.
-        </p>
-        <button
-          type="button"
-          onClick={handleSwitchFamily}
-          disabled={isSwitching}
-          className="mt-2 text-xs text-amber-600 underline-offset-2 hover:underline dark:text-amber-400"
-        >
-          Essa família está errada? Trocar família
-        </button>
+    <div className="relative z-10 flex w-full max-w-[1800px] flex-col gap-12">
+      <div className="flex flex-col items-center text-center">
+        <div className="flex items-center justify-center gap-3 sm:gap-6">
+          <Image
+            src="/Girassois.png"
+            alt=""
+            aria-hidden
+            width={1536}
+            height={1024}
+            priority
+            className="w-40 shrink-0 select-none sm:w-72 lg:w-80"
+          />
+          <div className="flex max-w-xl flex-col text-left">
+            <h1 className="font-signature text-5xl leading-tight text-[#4A3F35] sm:text-7xl">
+              Olá, {principalName}!
+            </h1>
+            <p className="mt-1 text-base font-bold leading-relaxed text-[#4A3F35] sm:text-xl">
+              Convidamos você e sua família para se juntar a nós e fazer dessa
+              celebração ainda mais especial. Contamos com vocês!
+            </p>
+            <p className="mt-3 text-sm leading-relaxed text-[#8B7355] sm:text-lg">
+              *Para tornar nosso chá de panela ainda mais especial e nos ajudar
+              a montar nosso lar, optamos por contribuição em dinheiro como
+              presente.
+            </p>
+            {hasContributions && (
+              <Link
+                href="/invitations/contributions"
+                className="mt-5 inline-flex h-11 w-fit items-center gap-2 rounded-xl border border-[#4A3F35] px-5 text-sm font-semibold text-[#4A3F35] transition-colors hover:bg-[#4A3F35] hover:text-white sm:text-base"
+              >
+                <Receipt aria-hidden className="size-4" />
+                Quero ver minhas contribuições
+              </Link>
+            )}
+          </div>
+        </div>
       </div>
 
+      <p className="-mb-4 flex items-center justify-center gap-2 text-center font-heading text-xl text-[#4A3F35] sm:gap-3 sm:text-2xl">
+        <ShoppingCart aria-hidden className="size-6 shrink-0 text-[#C4A35A] sm:size-7" />
+        Esta é a nossa lista do carinho para montar o nosso tão sonhado lar.
+      </p>
+
       {gifts.length === 0 ? (
-        <p className="text-center text-sm text-muted-foreground">
+        <p className="text-center text-sm text-[#8B7355]">
           Nenhum produto disponível no momento.
         </p>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 min-[1800px]:grid-cols-6">
           {gifts.map((gift) => (
             <ProductCard key={gift.id} gift={gift} peopleCount={peopleCount} />
           ))}
@@ -96,8 +115,9 @@ function ProductCard({
   gift: GiftDTO;
   peopleCount: number;
 }) {
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [cpf, setCpf] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  // Valor digitado, em centavos (evita erros de arredondamento com float).
+  const [amountCents, setAmountCents] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [payment, setPayment] = useState<PaymentResult | null>(null);
@@ -123,129 +143,216 @@ function ProductCard({
     return () => clearInterval(interval);
   }, [payment, status]);
 
+  function handleOpenDialog() {
+    if (!payment) {
+      setAmountCents(Math.round(suggestedValue * 100));
+    }
+    setIsDialogOpen(true);
+  }
+
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
+
+    const parsedAmount = amountCents / 100;
+    if (parsedAmount < suggestedValue) {
+      setError(
+        `O valor não pode ser menor que o sugerido (${formatCurrency(suggestedValue)}).`,
+      );
+      return;
+    }
+
     startTransition(async () => {
       try {
-        const result = await createProductPayment(gift.id, cpf);
+        const result = await createProductPayment(gift.id, parsedAmount);
         setPayment(result);
         setStatus("PENDING");
-        setIsFormOpen(false);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Algo deu errado.");
       }
     });
   }
 
+  const fundingProgress = (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-baseline justify-between gap-2 text-xs">
+        <span className="text-[#4A3F35]">
+          {formatCurrency(gift.raisedAmount)} arrecadados
+        </span>
+        <span className="text-[#C4A35A]">
+          Meta: {formatCurrency(gift.value)}
+        </span>
+      </div>
+      <div
+        role="progressbar"
+        aria-valuenow={percentage}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        className="h-1.5 w-full overflow-hidden rounded-full bg-[#F5F0E1]"
+      >
+        <div
+          className="h-full rounded-full bg-[#C4A35A] transition-[width]"
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+    </div>
+  );
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+    <>
+      <article className="flex flex-col gap-5 rounded-2xl bg-white p-6 shadow-[0_10px_30px_-8px_rgba(74,63,53,0.25),0_2px_8px_rgba(74,63,53,0.08)]">
+        <div className="flex aspect-[3/2] items-center justify-center overflow-hidden rounded-xl bg-white">
           {gift.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={gift.imageUrl}
               alt={gift.name}
-              className="size-10 shrink-0 rounded-md object-cover ring-1 ring-border"
+              className="h-full w-auto max-w-full object-contain"
               onError={(event) => {
                 event.currentTarget.style.visibility = "hidden";
               }}
             />
           ) : (
-            <GiftIcon className="size-6 text-muted-foreground" />
+            <GiftIcon className="size-12 text-[#C4A35A]" />
           )}
+        </div>
+
+        <h2 className="font-heading text-xl font-semibold text-[#4A3F35]">
           {gift.name}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <div className="flex flex-col gap-1">
-          <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-            <div
-              className="h-full rounded-full bg-amber-500 transition-[width]"
-              style={{ width: `${percentage}%` }}
-            />
-          </div>
-          <span className="text-xs text-muted-foreground">
-            {formatCurrency(gift.raisedAmount)} arrecadados de{" "}
-            {formatCurrency(gift.minValue)} · {percentage}%
+        </h2>
+
+        {fundingProgress}
+
+        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 rounded-xl bg-[#FBF8EF] px-3 py-3">
+          <span className="text-sm font-bold text-[#4A3F35]">Sugestão para presente</span>
+          <span className="text-lg font-semibold text-[#C4A35A]">
+            {formatCurrency(suggestedValue)}
           </span>
         </div>
 
         {status === "CONFIRMED" ? (
-          <p className="rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm font-medium text-amber-700 dark:text-amber-300">
+          <p className="flex h-11 items-center justify-center rounded-xl bg-[#FBF8EF] text-base font-semibold text-[#A8883F]">
             Pago! Obrigado 💛
           </p>
-        ) : payment ? (
-          <div className="flex flex-col items-center gap-2 rounded-lg border border-border px-3 py-3 text-center">
-            <p className="text-sm text-muted-foreground">
-              Escaneie o QR Code ou copie o código Pix para pagar{" "}
-              {formatCurrency(payment.amount)}.
-            </p>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`data:image/png;base64,${payment.qrCodeImage}`}
-              alt="QR Code Pix"
-              className="size-40"
-            />
-            <Input
-              readOnly
-              value={payment.qrCodePayload}
-              onFocus={(event) => event.currentTarget.select()}
-              className="text-center text-xs"
-            />
-            <p className="text-xs text-muted-foreground">
-              Assim que o pagamento for confirmado, o valor é atualizado aqui
-              automaticamente.
-            </p>
-          </div>
-        ) : isFormOpen ? (
-          <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-            <p className="text-sm">
-              Valor sugerido para a sua família:{" "}
-              <span className="font-semibold">
-                {formatCurrency(suggestedValue)}
-              </span>
-            </p>
-            <Input
-              required
-              inputMode="numeric"
-              placeholder="CPF (somente números)"
-              value={cpf}
-              onChange={(event) => setCpf(event.target.value)}
-            />
-            {error && (
-              <p role="alert" className="text-sm text-destructive">
-                {error}
-              </p>
-            )}
-            <div className="flex gap-2">
-              <Button type="submit" size="sm" disabled={isPending}>
-                {isPending ? "Gerando Pix..." : "Gerar Pix"}
-                {!isPending && <Check data-icon="inline-end" />}
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => setIsFormOpen(false)}
-                disabled={isPending}
-              >
-                Cancelar
-              </Button>
-            </div>
-          </form>
         ) : (
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-sm text-muted-foreground">
-              Sugestão: {formatCurrency(suggestedValue)}
-            </span>
-            <Button size="sm" onClick={() => setIsFormOpen(true)}>
-              Contribuir
-            </Button>
-          </div>
+          <button
+            type="button"
+            onClick={handleOpenDialog}
+            className="h-11 rounded-xl bg-[#4A3F35] text-base font-semibold text-white transition-colors hover:bg-[#3A3129]"
+          >
+            {payment ? "Continuar pagamento" : "Contribuir agora"}
+          </button>
         )}
-      </CardContent>
-    </Card>
+      </article>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-3xl p-4 sm:p-6">
+          <div className="grid gap-4 sm:grid-cols-2 sm:gap-6">
+            <div className="aspect-square overflow-hidden rounded-xl bg-white sm:aspect-auto sm:h-full">
+              {gift.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={gift.imageUrl}
+                  alt={gift.name}
+                  className="size-full object-contain"
+                  onError={(event) => {
+                    event.currentTarget.style.visibility = "hidden";
+                  }}
+                />
+              ) : (
+                <div className="flex size-full items-center justify-center">
+                  <GiftIcon className="size-16 text-muted-foreground" />
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-4 py-2 sm:pr-8">
+              <DialogTitle className="text-2xl text-[#4A3F35] sm:text-3xl">{gift.name}</DialogTitle>
+              {fundingProgress}
+
+              {status === "CONFIRMED" ? (
+                <p className="rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm font-medium text-amber-700 dark:text-amber-300">
+                  Pago! Obrigado 💛
+                </p>
+              ) : payment ? (
+                <div className="flex flex-col items-center gap-2 rounded-lg border border-border px-3 py-3 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Continue o pagamento de {formatCurrency(payment.amount)}{" "}
+                    no Asaas. Você pode pagar com Pix, cartão de crédito (até{" "}
+                    {maxInstallmentsFor(payment.amount)}x), débito ou boleto.
+                  </p>
+                  <Button
+                    size="sm"
+                    render={
+                      <a
+                        href={payment.invoiceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      />
+                    }
+                  >
+                    Ir para o pagamento
+                  </Button>
+                  <p className="text-sm text-muted-foreground">
+                    Assim que o pagamento for confirmado, o valor é
+                    atualizado aqui automaticamente.
+                  </p>
+                </div>
+              ) : (
+                <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor={`amount-${gift.id}`}>
+                      Valor da contribuição
+                    </Label>
+                    <Input
+                      id={`amount-${gift.id}`}
+                      aria-describedby={`amount-description-${gift.id}`}
+                      required
+                      inputMode="numeric"
+                      value={formatCurrency(amountCents / 100)}
+                      onChange={(event) => {
+                        // Máscara de moeda: os dígitos entram pela direita
+                        // (ex.: 1 → R$ 0,01, 12 → R$ 0,12, 1234 → R$ 12,34).
+                        const digits = event.target.value
+                          .replace(/\D/g, "")
+                          .slice(0, 9);
+                        setAmountCents(Number(digits || "0"));
+                      }}
+                    />
+                    <p
+                      id={`amount-description-${gift.id}`}
+                      className="text-sm text-muted-foreground"
+                    >
+                      Valor sugerido e mínimo: {formatCurrency(suggestedValue)}
+                    </p>
+                  </div>
+                  {error && (
+                    <p role="alert" className="text-sm text-destructive">
+                      {error}
+                    </p>
+                  )}
+                  <div className="mt-1 flex flex-col gap-2">
+                    <Button type="submit" size="sm" className="w-full" disabled={isPending}>
+                      <Flower2 data-icon="inline-start" />
+                      {isPending ? "Gerando link..." : "Gerar link de pagamento"}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      className="w-full"
+                      variant="outline"
+                      onClick={() => setIsDialogOpen(false)}
+                      disabled={isPending}
+                    >
+                      Cancelar
+                    </Button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

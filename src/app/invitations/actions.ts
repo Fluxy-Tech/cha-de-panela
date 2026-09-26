@@ -1,14 +1,19 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { INVITE_CODE_COOKIE } from "@/lib/invite-code";
 import {
   setFamilySessionCookie,
-  clearFamilySessionCookie,
   getSessionFamilyId,
 } from "@/lib/family-session";
-import { calculateContributionValue } from "@/lib/pricing";
-import { findOrCreateAsaasCustomer, createPixPayment } from "@/lib/asaas";
+import {
+  calculateContributionValue,
+  maxInstallmentsFor,
+} from "@/lib/pricing";
+import { createPaymentLink } from "@/lib/asaas";
+import { formatCurrency } from "@/lib/format";
 
 export async function validateFamilyCode(familyId: string, code: string) {
   const trimmedCode = code.trim().toUpperCase();
@@ -25,26 +30,44 @@ export async function validateFamilyCode(familyId: string, code: string) {
   revalidatePath("/invitations");
 }
 
-export async function resetFamilySelection() {
-  await clearFamilySessionCookie();
+// Usado pelo link de convite (/?tk=CODIGO, guardado em cookie pelo proxy, ou
+// /invitations?tk=CODIGO): o código já identifica a família sozinho, sem
+// precisar selecioná-la em uma lista. Retorna o erro em vez de lançar para que
+// o cookie do convite seja removido mesmo quando o código é inválido.
+export async function validateFamilyByLinkCode(
+  code: string,
+): Promise<{ error: string | null }> {
+  (await cookies()).delete(INVITE_CODE_COOKIE);
+
+  const trimmedCode = code.trim().toUpperCase();
+  if (!trimmedCode) {
+    return { error: "Link inválido." };
+  }
+
+  const family = await prisma.family.findUnique({
+    where: { code: trimmedCode },
+  });
+  if (!family) {
+    return { error: "Link inválido ou expirado." };
+  }
+
+  await setFamilySessionCookie(family.id);
   revalidatePath("/invitations");
+  return { error: null };
 }
 
-export async function createProductPayment(giftId: string, cpf: string) {
+export async function createProductPayment(giftId: string, amount: number) {
   const familyId = await getSessionFamilyId();
   if (!familyId) {
     throw new Error("Sessão expirada. Selecione sua família novamente.");
   }
 
-  const cleanCpf = cpf.replace(/\D/g, "");
-  if (cleanCpf.length !== 11) {
-    throw new Error("Informe um CPF válido.");
-  }
-
   const [family, gift] = await Promise.all([
     prisma.family.findUniqueOrThrow({
       where: { id: familyId },
-      include: { members: true },
+      include: {
+        members: { orderBy: [{ isPrincipal: "desc" }, { createdAt: "asc" }] },
+      },
     }),
     prisma.gift.findUniqueOrThrow({ where: { id: giftId } }),
   ]);
@@ -55,15 +78,23 @@ export async function createProductPayment(giftId: string, cpf: string) {
   }
 
   const peopleCount = family.members.filter((member) => !member.isChild).length;
-  const amount = calculateContributionValue(gift.minValue, peopleCount);
+  const suggestedValue = calculateContributionValue(gift.minValue, peopleCount);
 
-  const customerId = await findOrCreateAsaasCustomer(principal.name, cleanCpf);
+  if (!Number.isFinite(amount) || amount < suggestedValue) {
+    throw new Error(
+      `O valor não pode ser menor que o sugerido (${formatCurrency(suggestedValue)}).`,
+    );
+  }
 
-  const pix = await createPixPayment({
-    customerId,
+  const link = await createPaymentLink({
+    name: `Chá de Panela · ${gift.name}`,
     value: amount,
+    maxInstallmentCount: maxInstallmentsFor(amount),
     externalReference: `${family.id}:${gift.id}:${Date.now()}`,
-    description: `Chá de Panela · ${gift.name}`,
+    description: buildPaymentDescription(
+      gift.name,
+      family.members.map((member) => member.name),
+    ),
   });
 
   const payment = await prisma.payment.create({
@@ -71,12 +102,9 @@ export async function createProductPayment(giftId: string, cpf: string) {
       familyId: family.id,
       giftId: gift.id,
       payerName: principal.name,
-      payerCpf: cleanCpf,
       amount,
-      asaasPaymentId: pix.paymentId,
-      asaasCustomerId: customerId,
-      pixPayload: pix.qrCodePayload,
-      pixQrCode: pix.qrCodeImage,
+      asaasPaymentLinkId: link.paymentLinkId,
+      invoiceUrl: link.url,
     },
   });
 
@@ -85,8 +113,7 @@ export async function createProductPayment(giftId: string, cpf: string) {
   return {
     paymentId: payment.id,
     amount,
-    qrCodeImage: pix.qrCodeImage,
-    qrCodePayload: pix.qrCodePayload,
+    invoiceUrl: link.url,
   };
 }
 
@@ -96,4 +123,13 @@ export async function getPaymentStatus(paymentId: string) {
     select: { status: true },
   });
   return payment.status;
+}
+
+// O Asaas aceita no máximo 500 caracteres na descrição da cobrança.
+const ASAAS_DESCRIPTION_MAX_LENGTH = 500;
+
+function buildPaymentDescription(giftName: string, memberNames: string[]) {
+  const description = `Chá de Panela · ${giftName} · Família: ${memberNames.join(", ")}`;
+  if (description.length <= ASAAS_DESCRIPTION_MAX_LENGTH) return description;
+  return `${description.slice(0, ASAAS_DESCRIPTION_MAX_LENGTH - 1)}…`;
 }

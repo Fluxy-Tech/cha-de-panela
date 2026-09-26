@@ -2,23 +2,34 @@
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import gsap from "gsap";
 import iconeGirassol from "@/app/assets/IconeBotaoDeAberturaDoEnvelope.png";
 
-export function SiteHeader() {
+// "hero": transparente sobre a foto da tela inicial; ao rolar para fora dela,
+// fica com o mesmo fundo marrom do "solid".
+// "solid": fundo marrom fixo, para telas sem imagem de fundo (ex.: /invitations).
+export function SiteHeader({
+  variant = "hero",
+}: {
+  variant?: "hero" | "solid";
+}) {
   const headerRef = useRef<HTMLElement>(null);
   const nameARef = useRef<HTMLSpanElement>(null);
   const iconRef = useRef<HTMLImageElement>(null);
   const nameBRef = useRef<HTMLSpanElement>(null);
   const [isScrolled, setIsScrolled] = useState(false);
 
+  const isSolid = variant === "solid" || isScrolled;
+
   useEffect(() => {
+    if (variant === "solid") return;
     const threshold = () => window.innerHeight - 96;
     const onScroll = () => setIsScrolled(window.scrollY > threshold());
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  }, [variant]);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -59,35 +70,43 @@ export function SiteHeader() {
   return (
     <header
       ref={headerRef}
-      className="fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-3 bg-transparent px-6 py-5 sm:gap-5 sm:py-6"
+      className={`fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-3 px-6 py-5 transition-colors duration-500 sm:gap-5 sm:py-6 ${
+        isSolid ? "bg-[#4A3F35]" : "bg-transparent"
+      }`}
     >
       <span
         ref={nameARef}
         className={`font-signature text-3xl leading-none transition-colors duration-500 sm:text-4xl ${
-          isScrolled
-            ? "text-neutral-900"
-            : "text-yellow-50 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]"
-        }`}
-      >
-        Gabrielle
-      </span>
-      <Image
-        ref={iconRef}
-        src={iconeGirassol}
-        alt="Girassol"
-        className={`size-6 transition-[filter] duration-500 sm:size-8 ${
-          isScrolled ? "" : "drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]"
-        }`}
-      />
-      <span
-        ref={nameBRef}
-        className={`font-signature text-3xl leading-none transition-colors duration-500 sm:text-4xl ${
-          isScrolled
-            ? "text-neutral-900"
+          isSolid
+            ? "text-yellow-50"
             : "text-yellow-50 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]"
         }`}
       >
         Gabriel
+      </span>
+      <Link
+        href="/"
+        aria-label="Ir para a página inicial"
+        className="inline-flex shrink-0 transition-transform hover:scale-110"
+      >
+        <Image
+          ref={iconRef}
+          src={iconeGirassol}
+          alt="Girassol"
+          className={`size-6 transition-[filter] duration-500 sm:size-8 ${
+            isSolid ? "" : "drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]"
+          }`}
+        />
+      </Link>
+      <span
+        ref={nameBRef}
+        className={`font-signature text-3xl leading-none transition-colors duration-500 sm:text-4xl ${
+          isSolid
+            ? "text-yellow-50"
+            : "text-yellow-50 drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]"
+        }`}
+      >
+        Gabrielle
       </span>
     </header>
   );

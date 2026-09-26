@@ -1,5 +1,6 @@
 import { requireUser } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
+import { buildFamilyInviteLink } from "@/lib/app-url";
 import { FamiliesSection } from "@/components/dashboard/families-section";
 import { GiftsSection } from "@/components/dashboard/gifts-section";
 
@@ -28,6 +29,7 @@ export default async function DashboardPage() {
   const familyDTOs = families.map((family) => ({
     id: family.id,
     code: family.code,
+    inviteLink: buildFamilyInviteLink(family.code),
     members: family.members,
     confirmedPayments: family.payments.map((payment) => ({
       id: payment.id,

@@ -17,3 +17,11 @@ export function calculateContributionValue(
 ) {
   return Math.round(minValue * contributionMultiplier(peopleCount) * 100) / 100;
 }
+
+// Limite de parcelas no cartão oferecido no link de pagamento do Asaas,
+// conforme o valor da contribuição.
+export function maxInstallmentsFor(value: number): number {
+  if (value <= 300) return 3;
+  if (value < 800) return 6;
+  return 10;
+}

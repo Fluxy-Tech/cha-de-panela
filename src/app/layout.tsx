@@ -1,22 +1,18 @@
 import type { Metadata } from "next";
-import { Alex_Brush, Fraunces, Geist, Geist_Mono } from "next/font/google";
+import { Alex_Brush, Geist_Mono, Raleway } from "next/font/google";
 import { Providers } from "@/components/providers";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Raleway: fonte de títulos, subtítulos, descrições e botões.
+const raleway = Raleway({
+  variable: "--font-raleway",
   subsets: ["latin"],
+  style: ["normal", "italic"],
 });
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
-});
-
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
-  subsets: ["latin"],
-  style: ["normal", "italic"],
 });
 
 const alexBrush = Alex_Brush({
@@ -34,7 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="pt-BR"
-      className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} ${alexBrush.variable} h-full antialiased`}
+      className={`${raleway.variable} ${geistMono.variable} ${alexBrush.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <Providers>{children}</Providers>

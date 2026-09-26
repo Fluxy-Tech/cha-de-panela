@@ -29,63 +29,42 @@ async function asaasFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-type AsaasCustomer = { id: string };
-type AsaasCustomerList = { data: AsaasCustomer[] };
-type AsaasPayment = { id: string };
-type AsaasPixQrCode = { encodedImage: string; payload: string };
+type AsaasPaymentLink = { id: string; url: string };
 
-export async function findOrCreateAsaasCustomer(
-  name: string,
-  cpf: string,
-): Promise<string> {
-  const cleanCpf = cpf.replace(/\D/g, "");
-
-  const existing = await asaasFetch<AsaasCustomerList>(
-    `/customers?cpfCnpj=${cleanCpf}`,
-  );
-  if (existing.data.length > 0) {
-    return existing.data[0].id;
-  }
-
-  const created = await asaasFetch<AsaasCustomer>("/customers", {
-    method: "POST",
-    body: JSON.stringify({ name, cpfCnpj: cleanCpf }),
-  });
-
-  return created.id;
-}
-
-export async function createPixPayment(params: {
-  customerId: string;
-  value: number;
-  externalReference: string;
+// Link de pagamento (em vez de cobrança) porque só ele permite limitar o
+// número máximo de parcelas por chamada de API (maxInstallmentCount, que exige
+// chargeType INSTALLMENT). Com billingType UNDEFINED o pagador escolhe entre
+// Pix, cartão de crédito, débito ou boleto na página hospedada pelo Asaas, e
+// informa ali os próprios dados (nome, CPF).
+export async function createPaymentLink(params: {
+  name: string;
   description: string;
-}): Promise<{
-  paymentId: string;
-  qrCodeImage: string;
-  qrCodePayload: string;
-}> {
-  const dueDate = new Date().toISOString().slice(0, 10);
-
-  const payment = await asaasFetch<AsaasPayment>("/payments", {
+  value: number;
+  maxInstallmentCount: number;
+  externalReference: string;
+}): Promise<{ paymentLinkId: string; url: string }> {
+  const link = await asaasFetch<AsaasPaymentLink>("/paymentLinks", {
     method: "POST",
     body: JSON.stringify({
-      customer: params.customerId,
-      billingType: "PIX",
-      value: params.value,
-      dueDate,
-      externalReference: params.externalReference,
+      name: params.name,
       description: params.description,
+      value: params.value,
+      billingType: "UNDEFINED",
+      chargeType: "INSTALLMENT",
+      maxInstallmentCount: params.maxInstallmentCount,
+      dueDateLimitDays: 3,
+      externalReference: params.externalReference,
+      notificationEnabled: false,
     }),
   });
 
-  const qrCode = await asaasFetch<AsaasPixQrCode>(
-    `/payments/${payment.id}/pixQrCode`,
-  );
+  return { paymentLinkId: link.id, url: link.url };
+}
 
-  return {
-    paymentId: payment.id,
-    qrCodeImage: qrCode.encodedImage,
-    qrCodePayload: qrCode.payload,
-  };
+// Links de pagamento podem ser pagos mais de uma vez; removemos o link assim
+// que a contribuição é confirmada para que ele funcione como pagamento único.
+export async function removePaymentLink(paymentLinkId: string) {
+  await asaasFetch<unknown>(`/paymentLinks/${paymentLinkId}`, {
+    method: "DELETE",
+  });
 }
