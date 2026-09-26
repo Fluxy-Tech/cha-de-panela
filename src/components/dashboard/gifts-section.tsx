@@ -1,7 +1,14 @@
 "use client";
 
 import { useState, useTransition, type FormEvent } from "react";
-import { Plus, Pencil, Trash2, Check, X } from "lucide-react";
+import {
+  Plus,
+  Pencil,
+  Trash2,
+  Check,
+  X,
+  Gift as GiftIcon,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -98,7 +105,7 @@ export function GiftsSection({ gifts }: { gifts: GiftDTO[] }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-heading text-lg font-semibold">
+        <h2 className="font-heading text-2xl font-semibold text-[#4A3F35]">
           Cadastrar Presentes
         </h2>
         {!isCreating && (
@@ -197,11 +204,11 @@ export function GiftsSection({ gifts }: { gifts: GiftDTO[] }) {
         </p>
       )}
 
-      <ul className="flex flex-col gap-2">
+      <ul className="flex flex-col gap-3">
         {gifts.map((gift) => (
           <li
             key={gift.id}
-            className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2"
+            className="flex items-center justify-between gap-3 rounded-2xl bg-white p-4 shadow-card"
           >
             {editingGiftId === gift.id ? (
               <form
@@ -285,31 +292,50 @@ export function GiftsSection({ gifts }: { gifts: GiftDTO[] }) {
               </form>
             ) : (
               <>
-                <div className="flex items-center gap-3">
+                <div className="flex min-w-0 flex-1 items-center gap-4">
                   {gift.imageUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={gift.imageUrl}
                       alt={gift.name}
-                      className="size-16 shrink-0 rounded-md object-cover ring-1 ring-border"
+                      className="size-20 shrink-0 rounded-xl bg-white object-contain"
                       onError={(event) => {
                         event.currentTarget.style.visibility = "hidden";
                       }}
                     />
                   ) : (
-                    <div className="size-16 shrink-0 rounded-md bg-muted" />
+                    <div className="flex size-20 shrink-0 items-center justify-center rounded-xl bg-[#FBF8EF]">
+                      <GiftIcon className="size-8 text-[#C4A35A]" />
+                    </div>
                   )}
-                  <div className="flex flex-col text-sm">
-                    <span className="font-medium">
-                      {gift.name}{" "}
-                      <span className="font-normal text-muted-foreground">
-                        · {formatCurrency(gift.value)}
-                      </span>
+                  <div className="flex min-w-0 flex-1 flex-col gap-2">
+                    <span className="font-heading text-lg font-semibold text-[#4A3F35]">
+                      {gift.name}
                     </span>
-                    <span className="text-sm text-muted-foreground">
-                      {formatCurrency(gift.raisedAmount)} arrecadados de{" "}
-                      {formatCurrency(gift.value)} · {fundedPercentage(gift)}%
-                    </span>
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex flex-wrap items-baseline justify-between gap-x-2 text-xs">
+                        <span className="text-[#4A3F35]">
+                          {formatCurrency(gift.raisedAmount)} arrecadados ·{" "}
+                          {fundedPercentage(gift)}%
+                        </span>
+                        <span className="text-[#C4A35A]">
+                          Meta: {formatCurrency(gift.value)} · Sugestão base:{" "}
+                          {formatCurrency(gift.minValue)}
+                        </span>
+                      </div>
+                      <div
+                        role="progressbar"
+                        aria-valuenow={fundedPercentage(gift)}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        className="h-1.5 w-full overflow-hidden rounded-full bg-[#F5F0E1]"
+                      >
+                        <div
+                          className="h-full rounded-full bg-[#C4A35A]"
+                          style={{ width: `${fundedPercentage(gift)}%` }}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <span className="flex items-center gap-1">

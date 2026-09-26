@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { requireUser } from "@/lib/dal";
 import { prisma } from "@/lib/prisma";
 import { buildFamilyInviteLink } from "@/lib/app-url";
@@ -48,14 +49,29 @@ export default async function DashboardPage() {
   }));
 
   return (
-    <div className="flex flex-col gap-8">
-      <div>
-        <h1 className="font-heading text-2xl font-semibold">
-          Olá, {user.name || user.email}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Bem-vindo(a) ao painel do Chá de Panela.
-        </p>
+    <div className="flex flex-col gap-14">
+      <div className="flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-6">
+        <Image
+          src="/Girassois.png"
+          alt=""
+          aria-hidden
+          width={1536}
+          height={1024}
+          loading="eager"
+          className="w-48 shrink-0 select-none sm:w-60"
+        />
+        <div className="flex flex-col items-center text-center sm:items-start sm:text-left">
+          <h1 className="font-signature text-5xl leading-tight text-[#4A3F35] sm:text-6xl">
+            Olá, {user.name || user.email}!
+          </h1>
+          <p className="mt-1 text-base font-bold text-[#4A3F35] sm:text-lg">
+            Bem-vindo(a) ao painel do Chá de Panela.
+          </p>
+          <p className="mt-2 text-sm text-[#8B7355] sm:text-base">
+            Cadastre os presentes, as famílias convidadas e acompanhe as
+            contribuições.
+          </p>
+        </div>
       </div>
 
       <GiftsSection gifts={giftDTOs} />

@@ -11,8 +11,11 @@ import iconeGirassol from "@/app/assets/IconeBotaoDeAberturaDoEnvelope.png";
 // "solid": fundo marrom fixo, para telas sem imagem de fundo (ex.: /invitations).
 export function SiteHeader({
   variant = "hero",
+  actions,
 }: {
   variant?: "hero" | "solid";
+  // Conteúdo opcional alinhado à direita (ex.: e-mail e "Sair" no dashboard).
+  actions?: React.ReactNode;
 }) {
   const headerRef = useRef<HTMLElement>(null);
   const nameARef = useRef<HTMLSpanElement>(null);
@@ -70,7 +73,9 @@ export function SiteHeader({
   return (
     <header
       ref={headerRef}
-      className={`fixed inset-x-0 top-0 z-50 flex items-center justify-center gap-3 px-6 py-5 transition-colors duration-500 sm:gap-5 sm:py-6 ${
+      className={`fixed inset-x-0 top-0 z-50 flex items-center gap-3 px-6 py-5 transition-colors duration-500 sm:gap-5 sm:py-6 ${
+        actions ? "justify-start sm:justify-center" : "justify-center"
+      } ${
         isSolid ? "bg-[#4A3F35]" : "bg-transparent"
       }`}
     >
@@ -108,6 +113,11 @@ export function SiteHeader({
       >
         Gabrielle
       </span>
+      {actions && (
+        <div className="absolute right-4 top-1/2 flex -translate-y-1/2 items-center gap-3 sm:right-6">
+          {actions}
+        </div>
+      )}
     </header>
   );
 }

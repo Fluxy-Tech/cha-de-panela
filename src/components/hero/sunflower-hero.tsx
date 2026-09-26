@@ -5,6 +5,7 @@ import { getImageProps } from "next/image";
 import Link from "next/link";
 import gsap from "gsap";
 import { SplitText } from "gsap/SplitText";
+import { cn } from "cn";
 import { buttonVariants } from "@/components/ui/button";
 import campoGirassois from "@/app/assets/GirassolParaCapa.png";
 import girassolMobile from "@/app/assets/GirassolParaCapaParaMobile.png";
@@ -116,11 +117,10 @@ export function SunflowerHero() {
         <Link
           ref={ctaRef}
           href="/invitations"
-          className={buttonVariants({
-            size: "lg",
-            className:
-              "mt-2 h-auto translate-y-3 rounded-full bg-yellow-400 px-6 py-3 text-base font-semibold text-yellow-950 opacity-0 shadow-lg hover:bg-yellow-300",
-          })}
+          className={cn(
+            buttonVariants({ size: "lg" }),
+            "mt-2 h-auto translate-y-3 rounded-full bg-yellow-400 px-6 py-3 text-base font-semibold text-yellow-950 opacity-0 shadow-lg hover:bg-yellow-300",
+          )}
         >
           Confirmar presença
         </Link>

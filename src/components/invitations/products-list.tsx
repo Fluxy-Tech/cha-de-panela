@@ -199,7 +199,7 @@ function ProductCard({
 
   return (
     <>
-      <article className="flex flex-col gap-5 rounded-2xl bg-white p-6 shadow-[0_10px_30px_-8px_rgba(74,63,53,0.25),0_2px_8px_rgba(74,63,53,0.08)]">
+      <article className="flex flex-col gap-5 rounded-2xl bg-white p-6 shadow-card">
         <div className="flex aspect-[3/2] items-center justify-center overflow-hidden rounded-xl bg-white">
           {gift.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element

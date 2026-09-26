@@ -164,7 +164,7 @@ export function FamiliesSection({ families }: { families: FamilyDTO[] }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
-        <h2 className="font-heading text-lg font-semibold">
+        <h2 className="font-heading text-2xl font-semibold text-[#4A3F35]">
           Cadastrar Famílias
         </h2>
         {!isCreating && (
@@ -225,14 +225,14 @@ export function FamiliesSection({ families }: { families: FamilyDTO[] }) {
         </p>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         {families.map((family) => {
           const principal = family.members.find((m) => m.isPrincipal);
 
           return (
             <Card key={family.id}>
               <CardHeader className="flex-row items-start justify-between">
-                <CardTitle>
+                <CardTitle className="text-[#4A3F35]">
                   {principal ? `Família de ${principal.name}` : "Família"}
                 </CardTitle>
                 <Button
@@ -246,10 +246,10 @@ export function FamiliesSection({ families }: { families: FamilyDTO[] }) {
                 </Button>
               </CardHeader>
               <CardContent className="flex flex-col gap-3">
-                <div className="flex items-center justify-between gap-2 rounded-lg border border-dashed border-border px-3 py-2">
+                <div className="flex items-center justify-between gap-2 rounded-xl bg-[#FBF8EF] px-3 py-2">
                   <span className="text-sm">
                     Código de acesso:{" "}
-                    <span className="font-mono font-semibold tracking-wider">
+                    <span className="font-mono font-semibold tracking-wider text-[#A8883F]">
                       {family.code}
                     </span>
                   </span>
@@ -268,9 +268,9 @@ export function FamiliesSection({ families }: { families: FamilyDTO[] }) {
                   </Button>
                 </div>
 
-                <div className="flex items-center justify-between gap-2 rounded-lg border border-dashed border-border px-3 py-2">
+                <div className="flex items-center justify-between gap-2 rounded-xl bg-[#FBF8EF] px-3 py-2">
                   <span className="flex min-w-0 items-center gap-1.5 text-sm">
-                    <LinkIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                    <LinkIcon className="size-3.5 shrink-0 text-[#C4A35A]" />
                     <span className="truncate">Link de convite</span>
                   </span>
                   <Button
@@ -295,13 +295,13 @@ export function FamiliesSection({ families }: { families: FamilyDTO[] }) {
                     {family.confirmedPayments.map((payment) => (
                       <li
                         key={payment.id}
-                        className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2 text-sm"
+                        className="flex items-center justify-between gap-2 rounded-xl bg-[#FBF8EF] px-3 py-2 text-sm"
                       >
                         <span className="flex items-center gap-2">
-                          <Coins className="size-4 text-muted-foreground" />
+                          <Coins className="size-4 text-[#C4A35A]" />
                           {payment.giftName}
                         </span>
-                        <span className="text-muted-foreground">
+                        <span className="font-semibold text-[#C4A35A]">
                           {formatCurrency(payment.amount)}
                         </span>
                       </li>
@@ -313,7 +313,7 @@ export function FamiliesSection({ families }: { families: FamilyDTO[] }) {
                   {family.members.map((member) => (
                     <li
                       key={member.id}
-                      className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2"
+                      className="flex items-center justify-between gap-2 rounded-xl border border-border bg-white px-3 py-2"
                     >
                       {editingMemberId === member.id ? (
                         <form
@@ -356,7 +356,7 @@ export function FamiliesSection({ families }: { families: FamilyDTO[] }) {
                         <>
                           <span className="flex items-center gap-2 text-sm">
                             {member.isPrincipal && (
-                              <Star className="size-3.5 fill-primary text-primary" />
+                              <Star className="size-3.5 fill-[#C4A35A] text-[#C4A35A]" />
                             )}
                             {member.name}
                             {member.isChild && (
@@ -386,7 +386,7 @@ export function FamiliesSection({ families }: { families: FamilyDTO[] }) {
                               >
                                 <Baby
                                   className={
-                                    member.isChild ? "text-primary" : undefined
+                                    member.isChild ? "text-[#C4A35A]" : undefined
                                   }
                                 />
                               </Button>

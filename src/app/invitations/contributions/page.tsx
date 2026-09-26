@@ -63,7 +63,7 @@ export default async function ContributionsPage() {
         </div>
 
         {payments.length === 0 ? (
-          <div className="flex flex-col items-center gap-4 rounded-2xl bg-white p-10 text-center shadow-[0_10px_30px_-8px_rgba(74,63,53,0.25),0_2px_8px_rgba(74,63,53,0.08)]">
+          <div className="flex flex-col items-center gap-4 rounded-2xl bg-white p-10 text-center shadow-card">
             <p className="text-base text-[#8B7355]">
               Vocês ainda não fizeram nenhuma contribuição.
             </p>
@@ -79,7 +79,7 @@ export default async function ContributionsPage() {
             {payments.map((payment) => (
               <li
                 key={payment.id}
-                className="flex flex-col gap-4 rounded-2xl bg-white p-5 shadow-[0_10px_30px_-8px_rgba(74,63,53,0.25),0_2px_8px_rgba(74,63,53,0.08)] sm:flex-row sm:items-center"
+                className="flex flex-col gap-4 rounded-2xl bg-white p-5 shadow-card sm:flex-row sm:items-center"
               >
                 <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white">
                   {payment.gift.imageUrl ? (
