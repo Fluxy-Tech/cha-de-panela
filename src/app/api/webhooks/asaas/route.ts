@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { removePaymentLink } from "@/lib/asaas";
@@ -15,9 +16,20 @@ type AsaasWebhookBody = {
   };
 };
 
+// O Asaas envia o token cadastrado no webhook no header "asaas-access-token".
+function isAuthorized(request: NextRequest): boolean {
+  const expected = process.env.ASAAS_WEBHOOK_TOKEN;
+  const received = request.headers.get("asaas-access-token");
+  if (!expected || !received) return false;
+
+  const expectedBuffer = Buffer.from(expected);
+  const receivedBuffer = Buffer.from(received);
+  if (expectedBuffer.length !== receivedBuffer.length) return false;
+  return timingSafeEqual(expectedBuffer, receivedBuffer);
+}
+
 export async function POST(request: NextRequest) {
-  const token = request.headers.get("access_token");
-  if (!token || token !== process.env.ASAAS_WEBHOOK_TOKEN) {
+  if (!isAuthorized(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
