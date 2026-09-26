@@ -12,7 +12,7 @@ import {
   calculateContributionValue,
   maxInstallmentsFor,
 } from "@/lib/pricing";
-import { createPaymentLink } from "@/lib/asaas";
+import { createPaymentLink, type PaymentMode } from "@/lib/asaas";
 import { formatCurrency } from "@/lib/format";
 
 export async function validateFamilyCode(familyId: string, code: string) {
@@ -56,7 +56,15 @@ export async function validateFamilyByLinkCode(
   return { error: null };
 }
 
-export async function createProductPayment(giftId: string, amount: number) {
+export async function createProductPayment(
+  giftId: string,
+  amount: number,
+  mode: PaymentMode,
+) {
+  if (mode !== "single" && mode !== "installments") {
+    throw new Error("Forma de pagamento inválida.");
+  }
+
   const familyId = await getSessionFamilyId();
   if (!familyId) {
     throw new Error("Sessão expirada. Selecione sua família novamente.");
@@ -89,6 +97,7 @@ export async function createProductPayment(giftId: string, amount: number) {
   const link = await createPaymentLink({
     name: `Chá de Panela · ${gift.name}`,
     value: amount,
+    mode,
     maxInstallmentCount: maxInstallmentsFor(amount),
     externalReference: `${family.id}:${gift.id}:${Date.now()}`,
     description: buildPaymentDescription(

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { formatCurrency } from "@/lib/format";
+import type { PaymentMode } from "@/lib/asaas";
 import {
   calculateContributionValue,
   maxInstallmentsFor,
@@ -31,6 +32,7 @@ type PaymentResult = {
   paymentId: string;
   amount: number;
   invoiceUrl: string;
+  mode: PaymentMode;
 };
 
 function fundedPercentage(gift: GiftDTO) {
@@ -117,6 +119,7 @@ function ProductCard({
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   // Valor digitado, em centavos (evita erros de arredondamento com float).
   const [amountCents, setAmountCents] = useState(0);
+  const [mode, setMode] = useState<PaymentMode>("single");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [payment, setPayment] = useState<PaymentResult | null>(null);
@@ -163,8 +166,8 @@ function ProductCard({
 
     startTransition(async () => {
       try {
-        const result = await createProductPayment(gift.id, parsedAmount);
-        setPayment(result);
+        const result = await createProductPayment(gift.id, parsedAmount, mode);
+        setPayment({ ...result, mode });
         setStatus("PENDING");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Algo deu errado.");
@@ -277,8 +280,10 @@ function ProductCard({
                 <div className="flex flex-col items-center gap-2 rounded-lg border border-border px-3 py-3 text-center">
                   <p className="text-sm text-muted-foreground">
                     Continue o pagamento de {formatCurrency(payment.amount)}{" "}
-                    no Asaas. Você pode pagar com Pix, cartão de crédito (até{" "}
-                    {maxInstallmentsFor(payment.amount)}x), débito ou boleto.
+                    no Asaas.{" "}
+                    {payment.mode === "installments"
+                      ? `Parcele no cartão de crédito em até ${maxInstallmentsFor(payment.amount)}x.`
+                      : "Pague à vista com Pix, boleto, débito ou cartão de crédito."}
                   </p>
                   <Button
                     size="sm"
@@ -325,6 +330,51 @@ function ProductCard({
                       Valor sugerido e mínimo: {formatCurrency(suggestedValue)}
                     </p>
                   </div>
+                  <fieldset className="flex flex-col gap-1.5">
+                    <legend className="mb-1.5 text-sm font-medium">
+                      Forma de pagamento
+                    </legend>
+                    {(
+                      [
+                        {
+                          value: "single",
+                          title: "À vista",
+                          description: "Pix, boleto, débito ou cartão de crédito",
+                        },
+                        {
+                          value: "installments",
+                          title: `Parcelado em até ${maxInstallmentsFor(amountCents / 100)}x`,
+                          description: "Somente no cartão de crédito",
+                        },
+                      ] as const
+                    ).map((option) => (
+                      <label
+                        key={option.value}
+                        className={`flex cursor-pointer items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors ${
+                          mode === option.value
+                            ? "border-[#C4A35A] bg-[#FBF8EF]"
+                            : "border-border hover:bg-[#FBF8EF]"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name={`payment-mode-${gift.id}`}
+                          value={option.value}
+                          checked={mode === option.value}
+                          onChange={() => setMode(option.value)}
+                          className="size-4 accent-[#4A3F35]"
+                        />
+                        <span className="flex flex-col">
+                          <span className="text-sm font-semibold text-[#4A3F35]">
+                            {option.title}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {option.description}
+                          </span>
+                        </span>
+                      </label>
+                    ))}
+                  </fieldset>
                   {error && (
                     <p role="alert" className="text-sm text-destructive">
                       {error}

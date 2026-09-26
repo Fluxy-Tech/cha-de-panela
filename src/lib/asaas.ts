@@ -7,7 +7,12 @@ function getApiUrl(): string {
 function getApiKey(): string {
   const key = process.env.ASAAS_API_KEY;
   if (!key) throw new Error("ASAAS_API_KEY não configurado.");
-  return key;
+  // As chaves do Asaas começam com "$", que o Next (.env), o Docker Compose e
+  // painéis como o Easypanel tentam expandir como variável (vira vazio). Por
+  // isso a chave pode ser configurada SEM o "$" (ex.: aact_hmlg_...) e ele é
+  // recolocado aqui. Também aceita "\$aact_..." removendo a barra.
+  const normalized = key.trim().replace(/^\\(?=\$)/, "");
+  return normalized.startsWith("aact_") ? `$${normalized}` : normalized;
 }
 
 async function asaasFetch<T>(path: string, init?: RequestInit): Promise<T> {
@@ -31,28 +36,45 @@ async function asaasFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
 type AsaasPaymentLink = { id: string; url: string };
 
+export type PaymentMode = "single" | "installments";
+
 // Link de pagamento (em vez de cobrança) porque só ele permite limitar o
-// número máximo de parcelas por chamada de API (maxInstallmentCount, que exige
-// chargeType INSTALLMENT). Com billingType UNDEFINED o pagador escolhe entre
-// Pix, cartão de crédito, débito ou boleto na página hospedada pelo Asaas, e
-// informa ali os próprios dados (nome, CPF).
+// número máximo de parcelas por chamada de API (maxInstallmentCount). O
+// pagador informa os próprios dados (nome, CPF) na página hospedada pelo Asaas.
+//
+// Um link INSTALLMENT com billingType UNDEFINED também oferece Pix e boleto
+// parcelados, então o parcelamento fica num link só de cartão de crédito:
+// - "single": à vista (DETACHED) em Pix, boleto, débito ou crédito.
+// - "installments": parcelado (INSTALLMENT) apenas no cartão de crédito.
 export async function createPaymentLink(params: {
   name: string;
   description: string;
   value: number;
+  mode: PaymentMode;
   maxInstallmentCount: number;
   externalReference: string;
 }): Promise<{ paymentLinkId: string; url: string }> {
+  const modeFields =
+    params.mode === "installments"
+      ? {
+          billingType: "CREDIT_CARD",
+          chargeType: "INSTALLMENT",
+          maxInstallmentCount: params.maxInstallmentCount,
+        }
+      : {
+          billingType: "UNDEFINED",
+          chargeType: "DETACHED",
+          // Dias úteis para pagar o boleto depois de gerado.
+          dueDateLimitDays: 3,
+        };
+
   const link = await asaasFetch<AsaasPaymentLink>("/paymentLinks", {
     method: "POST",
     body: JSON.stringify({
       name: params.name,
       description: params.description,
       value: params.value,
-      billingType: "UNDEFINED",
-      chargeType: "INSTALLMENT",
-      maxInstallmentCount: params.maxInstallmentCount,
-      dueDateLimitDays: 3,
+      ...modeFields,
       externalReference: params.externalReference,
       notificationEnabled: false,
     }),
