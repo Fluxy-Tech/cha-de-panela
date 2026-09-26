@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+.gitignore
+.dockerignore
+Dockerfile
+npm-debug.log*
+*.tsbuildinfo
+next-env.d.ts
+.vercel
+coverage
+.claude
+
+# Segredos: as variáveis são passadas no "docker run"/painel, nunca na imagem.
+.env*
