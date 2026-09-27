@@ -4,6 +4,10 @@ import { prisma } from "@/lib/prisma";
 import { buildFamilyInviteLink } from "@/lib/app-url";
 import { FamiliesSection } from "@/components/dashboard/families-section";
 import { GiftsSection } from "@/components/dashboard/gifts-section";
+import {
+  ReportSection,
+  type ReportDTO,
+} from "@/components/dashboard/report-section";
 
 export default async function DashboardPage() {
   const user = await requireUser();
@@ -38,6 +42,30 @@ export default async function DashboardPage() {
       amount: payment.amount,
     })),
   }));
+
+  // Uma família "pagou para participar" quando tem ao menos uma contribuição
+  // confirmada; todos os seus integrantes contam como pessoas participantes.
+  const paidFamilies = families.filter((family) => family.payments.length > 0);
+  const paidMembers = paidFamilies.flatMap((family) => family.members);
+  const paidChildrenCount = paidMembers.filter((member) => member.isChild).length;
+
+  const report: ReportDTO = {
+    totalReceived: families.reduce(
+      (total, family) =>
+        total +
+        family.payments.reduce((sum, payment) => sum + payment.amount, 0),
+      0,
+    ),
+    confirmedPaymentsCount: families.reduce(
+      (total, family) => total + family.payments.length,
+      0,
+    ),
+    paidPeopleCount: paidMembers.length,
+    paidAdultsCount: paidMembers.length - paidChildrenCount,
+    paidChildrenCount,
+    paidFamiliesCount: paidFamilies.length,
+    totalFamiliesCount: families.length,
+  };
 
   const giftDTOs = gifts.map((gift) => ({
     id: gift.id,
@@ -74,6 +102,7 @@ export default async function DashboardPage() {
         </div>
       </div>
 
+      <ReportSection report={report} />
       <GiftsSection gifts={giftDTOs} />
       <FamiliesSection families={familyDTOs} />
     </div>
