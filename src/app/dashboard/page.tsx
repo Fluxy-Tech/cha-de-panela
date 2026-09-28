@@ -45,10 +45,6 @@ export default async function DashboardPage() {
 
   // Uma família "pagou para participar" quando tem ao menos uma contribuição
   // confirmada; todos os seus integrantes contam como pessoas participantes.
-  const paidFamilies = families.filter((family) => family.payments.length > 0);
-  const paidMembers = paidFamilies.flatMap((family) => family.members);
-  const paidChildrenCount = paidMembers.filter((member) => member.isChild).length;
-
   const report: ReportDTO = {
     totalReceived: families.reduce(
       (total, family) =>
@@ -60,11 +56,21 @@ export default async function DashboardPage() {
       (total, family) => total + family.payments.length,
       0,
     ),
-    paidPeopleCount: paidMembers.length,
-    paidAdultsCount: paidMembers.length - paidChildrenCount,
-    paidChildrenCount,
-    paidFamiliesCount: paidFamilies.length,
     totalFamiliesCount: families.length,
+    paidFamilies: families
+      .filter((family) => family.payments.length > 0)
+      .map((family) => ({
+        id: family.id,
+        principalName:
+          family.members.find((member) => member.isPrincipal)?.name ??
+          "Sem principal",
+        members: family.members.map((member) => ({
+          id: member.id,
+          name: member.name,
+          isPrincipal: member.isPrincipal,
+          isChild: member.isChild,
+        })),
+      })),
   };
 
   const giftDTOs = gifts.map((gift) => ({
