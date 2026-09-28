@@ -77,8 +77,8 @@ export default async function InvitePage() {
               />
               <p className="text-base text-[#4A3F35]">
                 Para deixar essa celebração ainda mais especial, pedimos apenas
-                que você <strong>traga sua bebida preferida</strong> para brindar
-                conosco. 🥂
+                que você <strong>traga sua bebida preferida</strong> e o{" "}
+                <strong>seu cooler</strong> para brindar conosco. 🥂
               </p>
             </div>
           </div>

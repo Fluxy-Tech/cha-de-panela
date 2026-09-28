@@ -36,6 +36,9 @@ type PaymentResult = {
   mode: PaymentMode;
 };
 
+const THANK_YOU_MESSAGE =
+  "Estamos muito felizes pelo seu apoio e aqui estão os dados do evento.";
+
 function fundedPercentage(gift: GiftDTO) {
   if (gift.value <= 0) return 0;
   return Math.min(100, Math.round((gift.raisedAmount / gift.value) * 100));
@@ -195,6 +198,16 @@ function ProductCard({
     });
   }
 
+  const inviteLink = (
+    <Link
+      href="/invitations/invite"
+      className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-[#4A3F35] px-5 text-base font-semibold text-white transition-colors hover:bg-[#3A3129]"
+    >
+      <MailOpen aria-hidden className="size-4" />
+      Ver convite
+    </Link>
+  );
+
   const fundingProgress = (
     <div className="flex flex-col gap-2">
       <div className="flex items-baseline justify-between gap-2 text-xs">
@@ -253,9 +266,12 @@ function ProductCard({
         </div>
 
         {status === "CONFIRMED" ? (
-          <p className="flex h-11 items-center justify-center rounded-xl bg-[#FBF8EF] text-base font-semibold text-[#A8883F]">
-            Pago! Obrigado 💛
-          </p>
+          <div className="flex flex-col gap-3 rounded-xl bg-[#FBF8EF] px-4 py-4 text-center">
+            <p className="text-sm font-semibold text-[#4A3F35]">
+              {THANK_YOU_MESSAGE}
+            </p>
+            {inviteLink}
+          </div>
         ) : (
           <button
             type="button"
@@ -293,9 +309,12 @@ function ProductCard({
               {fundingProgress}
 
               {status === "CONFIRMED" ? (
-                <p className="rounded-lg border border-border bg-muted/50 px-3 py-2 text-sm font-medium text-amber-700 dark:text-amber-300">
-                  Pago! Obrigado 💛
-                </p>
+                <div className="flex flex-col items-center gap-3 rounded-xl bg-[#FBF8EF] px-4 py-4 text-center">
+                  <p className="text-base font-semibold text-[#4A3F35]">
+                    {THANK_YOU_MESSAGE}
+                  </p>
+                  {inviteLink}
+                </div>
               ) : payment ? (
                 <div className="flex flex-col items-center gap-2 rounded-lg border border-border px-3 py-3 text-center">
                   <p className="text-sm text-muted-foreground">
