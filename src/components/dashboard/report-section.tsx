@@ -1,42 +1,66 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Baby, ChevronRight, Coins, Home, Star, Users } from "lucide-react";
+import {
+  Baby,
+  ChevronRight,
+  ClipboardList,
+  Coins,
+  Home,
+  Star,
+  Users,
+} from "lucide-react";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { formatCurrency } from "@/lib/format";
 
-type PaidMemberDTO = {
+type MemberSummaryDTO = {
   id: string;
   name: string;
   isPrincipal: boolean;
   isChild: boolean;
 };
 
-type PaidFamilyDTO = {
+type FamilySummaryDTO = {
   id: string;
   principalName: string;
-  members: PaidMemberDTO[];
+  members: MemberSummaryDTO[];
 };
 
 export type ReportDTO = {
   totalReceived: number;
   confirmedPaymentsCount: number;
-  totalFamiliesCount: number;
-  paidFamilies: PaidFamilyDTO[];
+  registeredFamilies: FamilySummaryDTO[];
+  paidFamilies: FamilySummaryDTO[];
 };
 
-type OpenList = "people" | "families" | null;
+type OpenList = "people" | "families" | "registered" | null;
 
 function plural(count: number, singular: string, pluralForm: string) {
   return `${count} ${count === 1 ? singular : pluralForm}`;
 }
 
+function adultsAndChildren(members: MemberSummaryDTO[]) {
+  const childrenCount = members.filter((member) => member.isChild).length;
+  return `${plural(members.length - childrenCount, "adulto", "adultos")} · ${plural(
+    childrenCount,
+    "criança",
+    "crianças",
+  )}`;
+}
+
+const dialogTitles: Record<Exclude<OpenList, null>, string> = {
+  people: "Pessoas que pagaram",
+  families: "Famílias que pagaram",
+  registered: "Convidados cadastrados",
+};
+
 export function ReportSection({ report }: { report: ReportDTO }) {
   const [openList, setOpenList] = useState<OpenList>(null);
 
   const paidMembers = report.paidFamilies.flatMap((family) => family.members);
-  const paidChildrenCount = paidMembers.filter((member) => member.isChild).length;
-  const paidAdultsCount = paidMembers.length - paidChildrenCount;
+  const registeredMembers = report.registeredFamilies.flatMap(
+    (family) => family.members,
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -44,7 +68,7 @@ export function ReportSection({ report }: { report: ReportDTO }) {
         Relatório
       </h2>
 
-      <div className="grid gap-6 sm:grid-cols-3">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           icon={<Coins className="size-4 text-[#C4A35A]" />}
           label="Total recebido"
@@ -59,11 +83,7 @@ export function ReportSection({ report }: { report: ReportDTO }) {
           icon={<Users className="size-4 text-[#C4A35A]" />}
           label="Pessoas que pagaram"
           value={String(paidMembers.length)}
-          detail={`${plural(paidAdultsCount, "adulto", "adultos")} · ${plural(
-            paidChildrenCount,
-            "criança",
-            "crianças",
-          )}`}
+          detail={adultsAndChildren(paidMembers)}
           onClick={() => setOpenList("people")}
         />
         <StatCard
@@ -71,11 +91,22 @@ export function ReportSection({ report }: { report: ReportDTO }) {
           label="Famílias que pagaram"
           value={String(report.paidFamilies.length)}
           detail={`de ${plural(
-            report.totalFamiliesCount,
+            report.registeredFamilies.length,
             "família convidada",
             "famílias convidadas",
           )}`}
           onClick={() => setOpenList("families")}
+        />
+        <StatCard
+          icon={<ClipboardList className="size-4 text-[#C4A35A]" />}
+          label="Convidados cadastrados"
+          value={String(registeredMembers.length)}
+          detail={`${plural(registeredMembers.length, "pessoa", "pessoas")} em ${plural(
+            report.registeredFamilies.length,
+            "família",
+            "famílias",
+          )}`}
+          onClick={() => setOpenList("registered")}
         />
       </div>
 
@@ -87,32 +118,20 @@ export function ReportSection({ report }: { report: ReportDTO }) {
       >
         <DialogContent className="max-w-md p-6">
           <DialogTitle className="pr-10 text-2xl text-[#4A3F35]">
-            {openList === "families"
-              ? "Famílias que pagaram"
-              : "Pessoas que pagaram"}
+            {openList && dialogTitles[openList]}
           </DialogTitle>
 
-          {report.paidFamilies.length === 0 ? (
+          {openList === "registered" ? (
+            <RegisteredSummary
+              families={report.registeredFamilies}
+              members={registeredMembers}
+            />
+          ) : report.paidFamilies.length === 0 ? (
             <p className="mt-4 text-sm text-muted-foreground">
               Nenhum pagamento confirmado ainda.
             </p>
           ) : openList === "families" ? (
-            <ul className="mt-4 flex flex-col gap-2">
-              {report.paidFamilies.map((family) => (
-                <li
-                  key={family.id}
-                  className="flex items-center justify-between gap-2 rounded-xl bg-[#FBF8EF] px-3 py-2 text-sm"
-                >
-                  <span className="flex items-center gap-2 text-[#4A3F35]">
-                    <Star className="size-3.5 fill-[#C4A35A] text-[#C4A35A]" />
-                    {family.principalName}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {plural(family.members.length, "pessoa", "pessoas")}
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <FamilyList families={report.paidFamilies} className="mt-4" />
           ) : (
             <div className="mt-4 flex flex-col gap-4">
               {report.paidFamilies.map((family) => (
@@ -146,6 +165,77 @@ export function ReportSection({ report }: { report: ReportDTO }) {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function RegisteredSummary({
+  families,
+  members,
+}: {
+  families: FamilySummaryDTO[];
+  members: MemberSummaryDTO[];
+}) {
+  return (
+    <div className="mt-4 flex flex-col gap-4">
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-0.5 rounded-xl bg-[#FBF8EF] px-4 py-3">
+          <span className="flex items-center gap-1.5 text-xs text-[#8B7355]">
+            <Home className="size-3.5 text-[#C4A35A]" />
+            Famílias
+          </span>
+          <span className="font-heading text-3xl font-semibold text-[#4A3F35]">
+            {families.length}
+          </span>
+        </div>
+        <div className="flex flex-col gap-0.5 rounded-xl bg-[#FBF8EF] px-4 py-3">
+          <span className="flex items-center gap-1.5 text-xs text-[#8B7355]">
+            <Users className="size-3.5 text-[#C4A35A]" />
+            Pessoas
+          </span>
+          <span className="font-heading text-3xl font-semibold text-[#4A3F35]">
+            {members.length}
+          </span>
+        </div>
+      </div>
+      <p className="text-center text-xs text-muted-foreground">
+        {adultsAndChildren(members)}
+      </p>
+
+      {families.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          Nenhuma família cadastrada ainda.
+        </p>
+      ) : (
+        <FamilyList families={families} className="max-h-72 overflow-y-auto" />
+      )}
+    </div>
+  );
+}
+
+function FamilyList({
+  families,
+  className = "",
+}: {
+  families: FamilySummaryDTO[];
+  className?: string;
+}) {
+  return (
+    <ul className={`flex flex-col gap-2 ${className}`}>
+      {families.map((family) => (
+        <li
+          key={family.id}
+          className="flex items-center justify-between gap-2 rounded-xl bg-[#FBF8EF] px-3 py-2 text-sm"
+        >
+          <span className="flex items-center gap-2 text-[#4A3F35]">
+            <Star className="size-3.5 fill-[#C4A35A] text-[#C4A35A]" />
+            {family.principalName}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {plural(family.members.length, "pessoa", "pessoas")}
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }
 

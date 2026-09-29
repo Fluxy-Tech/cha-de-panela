@@ -43,6 +43,19 @@ export default async function DashboardPage() {
     })),
   }));
 
+  const familySummaries = families.map((family) => ({
+    id: family.id,
+    principalName:
+      family.members.find((member) => member.isPrincipal)?.name ??
+      "Sem principal",
+    members: family.members.map((member) => ({
+      id: member.id,
+      name: member.name,
+      isPrincipal: member.isPrincipal,
+      isChild: member.isChild,
+    })),
+  }));
+
   // Uma família "pagou para participar" quando tem ao menos uma contribuição
   // confirmada; todos os seus integrantes contam como pessoas participantes.
   const report: ReportDTO = {
@@ -56,21 +69,10 @@ export default async function DashboardPage() {
       (total, family) => total + family.payments.length,
       0,
     ),
-    totalFamiliesCount: families.length,
-    paidFamilies: families
-      .filter((family) => family.payments.length > 0)
-      .map((family) => ({
-        id: family.id,
-        principalName:
-          family.members.find((member) => member.isPrincipal)?.name ??
-          "Sem principal",
-        members: family.members.map((member) => ({
-          id: member.id,
-          name: member.name,
-          isPrincipal: member.isPrincipal,
-          isChild: member.isChild,
-        })),
-      })),
+    registeredFamilies: familySummaries,
+    paidFamilies: familySummaries.filter((_, index) =>
+      families[index].payments.length > 0,
+    ),
   };
 
   const giftDTOs = gifts.map((gift) => ({
