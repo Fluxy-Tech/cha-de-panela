@@ -10,6 +10,7 @@ import {
 } from "@/lib/family-session";
 import {
   calculateContributionValue,
+  isFullyFunded,
   maxInstallmentsFor,
 } from "@/lib/pricing";
 import { createPaymentLink, type PaymentMode } from "@/lib/asaas";
@@ -79,6 +80,10 @@ export async function createProductPayment(
     }),
     prisma.gift.findUniqueOrThrow({ where: { id: giftId } }),
   ]);
+
+  if (isFullyFunded(gift)) {
+    throw new Error("Este presente já foi totalmente arrecadado. Obrigado!");
+  }
 
   const principal = family.members.find((member) => member.isPrincipal);
   if (!principal) {

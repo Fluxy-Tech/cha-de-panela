@@ -25,3 +25,12 @@ export function maxInstallmentsFor(value: number): number {
   if (value < 800) return 6;
   return 10;
 }
+
+// Presente que já atingiu a meta não aceita novas contribuições. Compara em
+// centavos porque raisedAmount é uma soma de floats.
+export function isFullyFunded(gift: { value: number; raisedAmount: number }) {
+  return (
+    gift.value > 0 &&
+    Math.round(gift.raisedAmount * 100) >= Math.round(gift.value * 100)
+  );
+}

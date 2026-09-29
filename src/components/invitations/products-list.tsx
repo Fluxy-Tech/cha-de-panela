@@ -4,7 +4,13 @@ import { useEffect, useState, useTransition, type FormEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Gift as GiftIcon, Flower2, MailOpen, Receipt } from "lucide-react";
+import {
+  Gift as GiftIcon,
+  Flower2,
+  MailOpen,
+  PartyPopper,
+  Receipt,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +19,7 @@ import { formatCurrency } from "@/lib/format";
 import type { PaymentMode } from "@/lib/asaas";
 import {
   calculateContributionValue,
+  isFullyFunded,
   maxInstallmentsFor,
 } from "@/lib/pricing";
 import {
@@ -149,6 +156,8 @@ function ProductCard({
 
   const suggestedValue = calculateContributionValue(gift.minValue, peopleCount);
   const percentage = fundedPercentage(gift);
+  // Quem já gerou o link nesta visita ainda pode voltar a ele.
+  const isBlocked = isFullyFunded(gift) && !payment;
 
   useEffect(() => {
     if (!payment || status !== "PENDING") return;
@@ -271,6 +280,11 @@ function ProductCard({
               {THANK_YOU_MESSAGE}
             </p>
             {inviteLink}
+          </div>
+        ) : isBlocked ? (
+          <div className="flex h-11 items-center justify-center gap-2 rounded-xl bg-[#FBF8EF] text-base font-semibold text-[#C4A35A]">
+            <PartyPopper aria-hidden className="size-4" />
+            Presente completo
           </div>
         ) : (
           <button
