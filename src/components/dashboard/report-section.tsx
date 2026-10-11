@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import {
   Baby,
   ChevronRight,
+  CircleCheck,
   ClipboardList,
   Coins,
   Home,
@@ -30,10 +31,11 @@ export type ReportDTO = {
   totalReceived: number;
   confirmedPaymentsCount: number;
   registeredFamilies: FamilySummaryDTO[];
+  confirmedFamilies: FamilySummaryDTO[];
   paidFamilies: FamilySummaryDTO[];
 };
 
-type OpenList = "people" | "families" | "registered" | null;
+type OpenList = "confirmed" | "people" | "families" | "registered" | null;
 
 function plural(count: number, singular: string, pluralForm: string) {
   return `${count} ${count === 1 ? singular : pluralForm}`;
@@ -49,6 +51,7 @@ function adultsAndChildren(members: MemberSummaryDTO[]) {
 }
 
 const dialogTitles: Record<Exclude<OpenList, null>, string> = {
+  confirmed: "Presenças confirmadas",
   people: "Pessoas que pagaram",
   families: "Famílias que pagaram",
   registered: "Convidados cadastrados",
@@ -61,6 +64,9 @@ export function ReportSection({ report }: { report: ReportDTO }) {
   const registeredMembers = report.registeredFamilies.flatMap(
     (family) => family.members,
   );
+  const confirmedMembers = report.confirmedFamilies.flatMap(
+    (family) => family.members,
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -68,7 +74,18 @@ export function ReportSection({ report }: { report: ReportDTO }) {
         Relatório
       </h2>
 
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <StatCard
+          icon={<CircleCheck className="size-4 text-[#C4A35A]" />}
+          label="Presenças confirmadas"
+          value={String(confirmedMembers.length)}
+          detail={`${plural(
+            report.confirmedFamilies.length,
+            "família confirmada",
+            "famílias confirmadas",
+          )} · ${adultsAndChildren(confirmedMembers)}`}
+          onClick={() => setOpenList("confirmed")}
+        />
         <StatCard
           icon={<Coins className="size-4 text-[#C4A35A]" />}
           label="Total recebido"
@@ -121,7 +138,18 @@ export function ReportSection({ report }: { report: ReportDTO }) {
             {openList && dialogTitles[openList]}
           </DialogTitle>
 
-          {openList === "registered" ? (
+          {openList === "confirmed" ? (
+            report.confirmedFamilies.length === 0 ? (
+              <p className="mt-4 text-sm text-muted-foreground">
+                Nenhuma família confirmou presença ainda.
+              </p>
+            ) : (
+              <FamilyList
+                families={report.confirmedFamilies}
+                className="mt-4 max-h-72 overflow-y-auto"
+              />
+            )
+          ) : openList === "registered" ? (
             <RegisteredSummary
               families={report.registeredFamilies}
               members={registeredMembers}

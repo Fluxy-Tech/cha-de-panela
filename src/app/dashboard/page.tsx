@@ -35,6 +35,7 @@ export default async function DashboardPage() {
     id: family.id,
     code: family.code,
     inviteLink: buildFamilyInviteLink(family.code),
+    isConfirmed: family.confirmedAt !== null,
     members: family.members,
     confirmedPayments: family.payments.map((payment) => ({
       id: payment.id,
@@ -70,6 +71,9 @@ export default async function DashboardPage() {
       0,
     ),
     registeredFamilies: familySummaries,
+    confirmedFamilies: familySummaries.filter(
+      (_, index) => families[index].confirmedAt !== null,
+    ),
     paidFamilies: familySummaries.filter((_, index) =>
       families[index].payments.length > 0,
     ),

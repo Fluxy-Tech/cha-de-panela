@@ -28,7 +28,7 @@ export function AutoFamilyAccess({
           setAttempted(true);
           return;
         }
-        router.replace("/invitations");
+        router.replace("/invitations/invite");
         router.refresh();
       } catch {
         setError("Link inválido.");

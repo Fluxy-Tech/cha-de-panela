@@ -33,10 +33,14 @@ export function FamilySelectForm({ families }: { families: FamilyOption[] }) {
     setError(null);
     startTransition(async () => {
       try {
-        await validateFamilyCode(familyId, code);
-        router.refresh();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Algo deu errado.");
+        const result = await validateFamilyCode(familyId, code);
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        router.push("/invitations/invite");
+      } catch {
+        setError("Algo deu errado. Tente novamente.");
       }
     });
   }
@@ -47,7 +51,7 @@ export function FamilySelectForm({ families }: { families: FamilyOption[] }) {
         <CardTitle className="text-xl">Confirmar presença</CardTitle>
         <CardDescription>
           Selecione a sua família e informe o código enviado na mensagem para
-          ver os produtos que você pode nos ajudar a comprar.
+          confirmar a presença de todos e ver o seu convite.
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -89,7 +93,7 @@ export function FamilySelectForm({ families }: { families: FamilyOption[] }) {
             </p>
           )}
           <Button type="submit" disabled={isPending} className="mt-2 w-full">
-            {isPending ? "Confirmando..." : "Confirmar"}
+            {isPending ? "Confirmando..." : "Confirmar presença"}
           </Button>
         </form>
       </CardContent>

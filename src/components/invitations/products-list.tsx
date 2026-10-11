@@ -44,7 +44,7 @@ type PaymentResult = {
 };
 
 const THANK_YOU_MESSAGE =
-  "Estamos muito felizes pelo seu apoio e aqui estão os dados do evento.";
+  "Muito obrigado pelo carinho e pela ajuda! Os dados do evento estão no seu convite.";
 
 function fundedPercentage(gift: GiftDTO) {
   if (gift.value <= 0) return 0;
@@ -55,13 +55,11 @@ export function ProductsList({
   principalName,
   peopleCount,
   hasContributions,
-  hasConfirmedPayment,
   gifts,
 }: {
   principalName: string;
   peopleCount: number;
   hasContributions: boolean;
-  hasConfirmedPayment: boolean;
   gifts: GiftDTO[];
 }) {
   return (
@@ -82,36 +80,32 @@ export function ProductsList({
               Olá, {principalName}!
             </h1>
             <p className="mt-1 text-base font-bold leading-relaxed text-[#4A3F35] sm:text-xl">
-              Convidamos você e sua família para se juntar a nós e fazer dessa
-              celebração ainda mais especial. Contamos com vocês!
+              A presença da sua família está confirmada. Que alegria ter vocês
+              com a gente!
             </p>
             <p className="mt-3 text-sm leading-relaxed text-[#8B7355] sm:text-lg">
-              *Para tornar nosso chá de panela ainda mais especial e nos ajudar
-              a montar nosso lar, optamos por contribuição em dinheiro como
-              presente.
+              *Se quiserem nos ajudar a montar o nosso lar, cada item abaixo tem
+              um valor simbólico, já pensado para toda a família. A ajuda é
+              opcional: o mais importante é a presença de vocês.
             </p>
-            {(hasConfirmedPayment || hasContributions) && (
-              <div className="mt-5 flex flex-wrap justify-center gap-3 sm:justify-start">
-                {hasConfirmedPayment && (
-                  <Link
-                    href="/invitations/invite"
-                    className="inline-flex h-11 w-fit items-center gap-2 rounded-xl bg-[#4A3F35] px-5 text-sm font-semibold text-white transition-colors hover:bg-[#3A3129] sm:text-base"
-                  >
-                    <MailOpen aria-hidden className="size-4" />
-                    Ver meu convite
-                  </Link>
-                )}
-                {hasContributions && (
-                  <Link
-                    href="/invitations/contributions"
-                    className="inline-flex h-11 w-fit items-center gap-2 rounded-xl border border-[#4A3F35] px-5 text-sm font-semibold text-[#4A3F35] transition-colors hover:bg-[#4A3F35] hover:text-white sm:text-base"
-                  >
-                    <Receipt aria-hidden className="size-4" />
-                    Quero ver minhas contribuições
-                  </Link>
-                )}
-              </div>
-            )}
+            <div className="mt-5 flex flex-wrap justify-center gap-3 sm:justify-start">
+              <Link
+                href="/invitations/invite"
+                className="inline-flex h-11 w-fit items-center gap-2 rounded-xl bg-[#4A3F35] px-5 text-sm font-semibold text-white transition-colors hover:bg-[#3A3129] sm:text-base"
+              >
+                <MailOpen aria-hidden className="size-4" />
+                Ver meu convite
+              </Link>
+              {hasContributions && (
+                <Link
+                  href="/invitations/contributions"
+                  className="inline-flex h-11 w-fit items-center gap-2 rounded-xl border border-[#4A3F35] px-5 text-sm font-semibold text-[#4A3F35] transition-colors hover:bg-[#4A3F35] hover:text-white sm:text-base"
+                >
+                  <Receipt aria-hidden className="size-4" />
+                  Quero ver minhas contribuições
+                </Link>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -199,10 +193,14 @@ function ProductCard({
     startTransition(async () => {
       try {
         const result = await createProductPayment(gift.id, parsedAmount, mode);
-        setPayment({ ...result, mode });
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        setPayment({ ...result.data, mode });
         setStatus("PENDING");
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Algo deu errado.");
+      } catch {
+        setError("Algo deu errado. Tente novamente.");
       }
     });
   }
@@ -268,7 +266,7 @@ function ProductCard({
         {fundingProgress}
 
         <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 rounded-xl bg-[#FBF8EF] px-3 py-3">
-          <span className="text-sm font-bold text-[#4A3F35]">Sugestão para presente</span>
+          <span className="text-sm font-bold text-[#4A3F35]">Valor simbólico da família</span>
           <span className="text-lg font-semibold text-[#C4A35A]">
             {formatCurrency(suggestedValue)}
           </span>

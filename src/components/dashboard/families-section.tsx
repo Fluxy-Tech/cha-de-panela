@@ -11,6 +11,7 @@ import {
   Copy,
   Baby,
   Coins,
+  CircleCheck,
   Link as LinkIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ import {
   deleteMember,
   deleteFamily,
 } from "@/app/dashboard/families-actions";
+import type { ActionResult } from "@/lib/action-result";
 import { formatCurrency } from "@/lib/format";
 
 type MemberDTO = {
@@ -45,6 +47,7 @@ export type FamilyDTO = {
   id: string;
   code: string;
   inviteLink: string;
+  isConfirmed: boolean;
   members: MemberDTO[];
   confirmedPayments: ConfirmedPaymentDTO[];
 };
@@ -68,14 +71,21 @@ export function FamiliesSection({ families }: { families: FamilyDTO[] }) {
     field: "code" | "link";
   } | null>(null);
 
-  function runAction(action: () => Promise<void>, onDone?: () => void) {
+  function runAction(
+    action: () => Promise<ActionResult<unknown>>,
+    onDone?: () => void,
+  ) {
     setError(null);
     startTransition(async () => {
       try {
-        await action();
+        const result = await action();
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
         onDone?.();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Algo deu errado.");
+      } catch {
+        setError("Algo deu errado. Tente novamente.");
       }
     });
   }
@@ -232,9 +242,21 @@ export function FamiliesSection({ families }: { families: FamilyDTO[] }) {
           return (
             <Card key={family.id}>
               <CardHeader className="flex-row items-start justify-between">
-                <CardTitle className="text-[#4A3F35]">
-                  {principal ? `Família de ${principal.name}` : "Família"}
-                </CardTitle>
+                <div className="flex flex-col items-start gap-1.5">
+                  <CardTitle className="text-[#4A3F35]">
+                    {principal ? `Família de ${principal.name}` : "Família"}
+                  </CardTitle>
+                  {family.isConfirmed ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-xs font-semibold text-green-800">
+                      <CircleCheck className="size-3" />
+                      Presença confirmada
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                      Aguardando confirmação
+                    </span>
+                  )}
+                </div>
                 <Button
                   variant="ghost"
                   size="icon-sm"

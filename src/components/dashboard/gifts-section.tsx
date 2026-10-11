@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { createGift, updateGift, deleteGift } from "@/app/dashboard/gifts-actions";
+import type { ActionResult } from "@/lib/action-result";
 import { formatCurrency } from "@/lib/format";
 
 export type GiftDTO = {
@@ -46,14 +47,21 @@ export function GiftsSection({ gifts }: { gifts: GiftDTO[] }) {
   const [editMinValue, setEditMinValue] = useState("");
   const [editImageUrl, setEditImageUrl] = useState("");
 
-  function runAction(action: () => Promise<void>, onDone?: () => void) {
+  function runAction(
+    action: () => Promise<ActionResult<unknown>>,
+    onDone?: () => void,
+  ) {
     setError(null);
     startTransition(async () => {
       try {
-        await action();
+        const result = await action();
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
         onDone?.();
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Algo deu errado.");
+      } catch {
+        setError("Algo deu errado. Tente novamente.");
       }
     });
   }

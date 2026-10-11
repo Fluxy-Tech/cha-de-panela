@@ -4,12 +4,13 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { ActionError, toActionResult } from "@/lib/action-result";
 
 async function requireSession() {
   const session = await auth.api.getSession({ headers: await headers() });
 
   if (!session) {
-    throw new Error("Não autenticado.");
+    throw new ActionError("Não autenticado.");
   }
 
   return session;
@@ -17,13 +18,13 @@ async function requireSession() {
 
 function assertValidGiftInput(name: string, value: number, minValue: number) {
   if (!name.trim()) {
-    throw new Error("Informe o nome do presente.");
+    throw new ActionError("Informe o nome do presente.");
   }
   if (!Number.isFinite(value) || value < 0) {
-    throw new Error("Informe um valor válido.");
+    throw new ActionError("Informe um valor válido.");
   }
   if (!Number.isInteger(minValue) || minValue <= 0) {
-    throw new Error("Informe um valor mínimo válido (inteiro maior que zero).");
+    throw new ActionError("Informe um valor mínimo válido (inteiro maior que zero).");
   }
 }
 
@@ -33,16 +34,18 @@ export async function createGift(
   minValue: number,
   imageUrl: string,
 ) {
-  await requireSession();
+  return toActionResult(async () => {
+    await requireSession();
 
-  const trimmed = name.trim();
-  assertValidGiftInput(trimmed, value, minValue);
+    const trimmed = name.trim();
+    assertValidGiftInput(trimmed, value, minValue);
 
-  await prisma.gift.create({
-    data: { name: trimmed, value, minValue, imageUrl: imageUrl.trim() || null },
+    await prisma.gift.create({
+      data: { name: trimmed, value, minValue, imageUrl: imageUrl.trim() || null },
+    });
+
+    revalidatePath("/dashboard");
   });
-
-  revalidatePath("/dashboard");
 }
 
 export async function updateGift(
@@ -52,23 +55,27 @@ export async function updateGift(
   minValue: number,
   imageUrl: string,
 ) {
-  await requireSession();
+  return toActionResult(async () => {
+    await requireSession();
 
-  const trimmed = name.trim();
-  assertValidGiftInput(trimmed, value, minValue);
+    const trimmed = name.trim();
+    assertValidGiftInput(trimmed, value, minValue);
 
-  await prisma.gift.update({
-    where: { id: giftId },
-    data: { name: trimmed, value, minValue, imageUrl: imageUrl.trim() || null },
+    await prisma.gift.update({
+      where: { id: giftId },
+      data: { name: trimmed, value, minValue, imageUrl: imageUrl.trim() || null },
+    });
+
+    revalidatePath("/dashboard");
   });
-
-  revalidatePath("/dashboard");
 }
 
 export async function deleteGift(giftId: string) {
-  await requireSession();
+  return toActionResult(async () => {
+    await requireSession();
 
-  await prisma.gift.delete({ where: { id: giftId } });
+    await prisma.gift.delete({ where: { id: giftId } });
 
-  revalidatePath("/dashboard");
+    revalidatePath("/dashboard");
+  });
 }

@@ -73,6 +73,8 @@ model Verification {
 model Family {
   id        String    @id @default(cuid())
   code      String    @unique
+  // Preenchido quando a família confirma presença pelo convite.
+  confirmedAt DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   members   Member[]
